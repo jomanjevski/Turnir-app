@@ -298,7 +298,7 @@
                         </div>
                         <div class="form-group">
                             <label for="iznos-kotizacije">Visina kotizacije za ovaj tim (RSD):</label>
-                            <input type="number" id="iznos-kotizacije" value="5000" min="0" required>
+                            <input type="number" id="iznos-kotizacije" value="15000" min="0" required>
                         </div>
                         <button type="submit" class="btn-submit">Dodaj Ekipu</button>
                     </form>
@@ -547,7 +547,7 @@
             
             ekipe.forEach(ek => {
                 if(!kotizacijeMape[ek]) {
-                    kotizacijeMape[ek] = { iznos: 5000, placeno: false };
+                    kotizacijeMape[ek] = { iznos: 15000, placeno: false };
                 }
             });
 
@@ -799,7 +799,7 @@
             listaEkipaBody.innerHTML = '';
             ekipe.forEach(ek => { 
                 const tr = document.createElement('tr'); 
-                const kInfo = kotizacijeMape[ek] || { iznos: 5000, placeno: false };
+                const kInfo = kotizacijeMape[ek] || { iznos: 15000, placeno: false };
                 const badgeKlasa = kInfo.placeno ? 'kotizacija-placeno' : 'kotizacija-ceka';
                 const badgeTekst = kInfo.placeno ? `✔ Plaćeno (${kInfo.iznos})` : `❌ Čeka (${kInfo.iznos})`;
                 
