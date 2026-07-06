@@ -5,263 +5,261 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Organizacija Turnira - Panel za Organizatore</title>
     <style>
-        /* Ovo čini da sve bude lepo na telefonu, bez menjanja funkcionalnosti */
-.container {
-    padding: 10px;
-}
-.grid-2col {
-    display: flex;
-    flex-direction: column; /* Ovo slaže elemente jedan ispod drugog na mobilnom */
-}
-input, select, button {
-    font-size: 16px !important; /* Ovo sprečava zumiranje na iPhone-u prilikom klika */
-    padding: 12px !important;
-}
-        
-        :root {
-            --primary-blue: #0073c4;
-            --dark-blue: #005691;
-            --bg-gray: #f5f5f5;
-            --zebra-gray: #f9f9f9;
-            --border-gray: #ccc;
-            --green-success: #28a745;
-            --red-danger: #dc3545;
-        }
+    /* TVOJ ORIGINALNI KOD + MOBILNA OPTIMIZACIJA NA KRAJU */
+    :root {
+        --primary-blue: #0073c4;
+        --dark-blue: #005691;
+        --bg-gray: #f5f5f5;
+        --zebra-gray: #f9f9f9;
+        --border-gray: #ccc;
+        --green-success: #28a745;
+        --red-danger: #dc3545;
+    }
 
-        * {
-            box-sizing: border-box;
-            margin: 0;
-            padding: 0;
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-        }
+    * {
+        box-sizing: border-box;
+        margin: 0;
+        padding: 0;
+        font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    }
 
-        body {
-            background-color: #fafafa;
-            color: #333;
-            padding: 20px;
-        }
+    body {
+        background-color: #fafafa;
+        color: #333;
+        padding: 20px;
+    }
 
-        .container {
-            max-width: 1200px;
-            margin: 0 auto;
-        }
+    .container {
+        max-width: 1200px;
+        margin: 0 auto;
+    }
 
-        header {
-            background-color: var(--primary-blue);
-            color: white;
-            padding: 20px;
-            text-align: center;
-            border-radius: 8px;
-            margin-bottom: 20px;
-            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
-        }
+    header {
+        background-color: var(--primary-blue);
+        color: white;
+        padding: 20px;
+        text-align: center;
+        border-radius: 8px;
+        margin-bottom: 20px;
+        box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+    }
 
-        .finansijski-rezime {
-            display: flex;
-            gap: 15px;
-            margin-bottom: 20px;
-            flex-wrap: wrap;
-        }
+    .finansijski-rezime {
+        display: flex;
+        gap: 15px;
+        margin-bottom: 20px;
+        flex-wrap: wrap;
+    }
 
-        .rezime-kartica {
-            flex: 1;
-            min-width: 220px;
-            padding: 15px;
-            border-radius: 6px;
-            color: white;
-            font-weight: bold;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-        }
-        .bg-zarada { background-color: var(--green-success); }
-        .bg-trosak { background-color: var(--red-danger); }
-        .bg-saldo { background-color: #333; }
-        .rezime-kartica span { display: block; font-size: 22px; margin-top: 5px; font-family: monospace; }
+    .rezime-kartica {
+        flex: 1;
+        min-width: 220px;
+        padding: 15px;
+        border-radius: 6px;
+        color: white;
+        font-weight: bold;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    }
+    .bg-zarada { background-color: var(--green-success); }
+    .bg-trosak { background-color: var(--red-danger); }
+    .bg-saldo { background-color: #333; }
+    .rezime-kartica span { display: block; font-size: 22px; margin-top: 5px; font-family: monospace; }
 
-        .tabs {
-            display: flex;
-            gap: 10px;
-            margin-bottom: 20px;
-            flex-wrap: wrap;
-        }
+    .tabs {
+        display: flex;
+        gap: 10px;
+        margin-bottom: 20px;
+        flex-wrap: wrap;
+    }
 
-        .tab-btn {
-            padding: 12px 24px;
-            border: none;
-            background-color: #ddd;
-            cursor: pointer;
-            font-size: 16px;
-            font-weight: bold;
-            border-radius: 5px;
-            transition: 0.3s;
-        }
+    .tab-btn {
+        padding: 12px 24px;
+        border: none;
+        background-color: #ddd;
+        cursor: pointer;
+        font-size: 16px;
+        font-weight: bold;
+        border-radius: 5px;
+        transition: 0.3s;
+    }
 
-        .tab-btn.active {
-            background-color: var(--primary-blue);
-            color: white;
-        }
+    .tab-btn.active {
+        background-color: var(--primary-blue);
+        color: white;
+    }
 
-        .tab-content {
-            display: none;
-            background: white;
-            padding: 20px;
-            border-radius: 8px;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.05);
-        }
+    .tab-content {
+        display: none;
+        background: white;
+        padding: 20px;
+        border-radius: 8px;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+    }
 
-        .tab-content.active {
-            display: block;
-        }
+    .tab-content.active {
+        display: block;
+    }
 
-        .grid-2col {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(450px, 1fr));
-            gap: 30px;
-        }
+    .grid-2col {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(450px, 1fr));
+        gap: 30px;
+    }
 
-        .form-panel {
-            background: var(--bg-gray);
-            padding: 20px;
-            border-radius: 6px;
-            margin-bottom: 20px;
-            border: 1px solid var(--border-gray);
-        }
+    .form-panel {
+        background: var(--bg-gray);
+        padding: 20px;
+        border-radius: 6px;
+        margin-bottom: 20px;
+        border: 1px solid var(--border-gray);
+    }
 
-        .form-group {
-            display: flex;
-            flex-direction: column;
-            gap: 12px;
-            margin-bottom: 15px;
-        }
+    .form-group {
+        display: flex;
+        flex-direction: column;
+        gap: 12px;
+        margin-bottom: 15px;
+    }
 
-        .form-row-inline {
-            display: flex;
-            gap: 15px;
-            align-items: flex-end;
-            flex-wrap: wrap;
-        }
+    .form-row-inline {
+        display: flex;
+        gap: 15px;
+        align-items: flex-end;
+        flex-wrap: wrap;
+    }
 
-        .form-row-inline > div {
-            flex: 1;
-            min-width: 150px;
-        }
+    .form-row-inline > div {
+        flex: 1;
+        min-width: 150px;
+    }
 
-        label {
-            display: block;
-            margin-bottom: 5px;
-            font-weight: 600;
-            font-size: 14px;
-        }
+    label {
+        display: block;
+        margin-bottom: 5px;
+        font-weight: 600;
+        font-size: 14px;
+    }
 
-        input, select {
-            width: 100%;
-            padding: 10px;
-            border: 1px solid var(--border-gray);
-            border-radius: 4px;
-            font-size: 15px;
-        }
+    input, select {
+        width: 100%;
+        padding: 10px;
+        border: 1px solid var(--border-gray);
+        border-radius: 4px;
+        font-size: 15px;
+    }
 
-        button.btn-submit {
-            background-color: var(--primary-blue);
-            color: white;
-            border: none;
-            padding: 11px 20px;
-            font-size: 15px;
-            font-weight: bold;
-            border-radius: 4px;
-            cursor: pointer;
-            transition: 0.2s;
-        }
+    button.btn-submit {
+        background-color: var(--primary-blue);
+        color: white;
+        border: none;
+        padding: 11px 20px;
+        font-size: 15px;
+        font-weight: bold;
+        border-radius: 4px;
+        cursor: pointer;
+        transition: 0.2s;
+    }
 
-        button.btn-submit:hover { background-color: var(--dark-blue); }
+    button.btn-submit:hover { background-color: var(--dark-blue); }
 
-        .excel-table {
-            width: 100%;
-            border-collapse: collapse;
-            margin-top: 15px;
-        }
+    .excel-table {
+        width: 100%;
+        border-collapse: collapse;
+        margin-top: 15px;
+    }
 
-        .excel-table th {
-            background-color: var(--primary-blue);
-            color: white;
-            padding: 12px 10px;
-            text-align: left;
-            font-weight: bold;
-            border: 1px solid var(--border-gray);
-        }
+    .excel-table th {
+        background-color: var(--primary-blue);
+        color: white;
+        padding: 12px 10px;
+        text-align: left;
+        font-weight: bold;
+        border: 1px solid var(--border-gray);
+    }
 
-        .excel-table td {
-            padding: 10px;
-            border: 1px solid var(--border-gray);
-        }
+    .excel-table td {
+        padding: 10px;
+        border: 1px solid var(--border-gray);
+    }
 
-        .excel-table tr:nth-child(even) { background-color: var(--zebra-gray); }
+    .excel-table tr:nth-child(even) { background-color: var(--zebra-gray); }
 
-        .link-ekipa { color: var(--primary-blue); text-decoration: none; cursor: pointer; }
-        .link-ekipa:hover { text-decoration: underline; }
+    .link-ekipa { color: var(--primary-blue); text-decoration: none; cursor: pointer; }
+    .link-ekipa:hover { text-decoration: underline; }
 
-        .match-card {
-            background: #fff;
-            border: 1px solid var(--border-gray);
-            padding: 15px;
-            border-radius: 6px;
-            margin-bottom: 12px;
-            box-shadow: 0 1px 3px rgba(0,0,0,0.05);
-        }
-        .match-main-info {
-            display: flex; justify-content: space-between; align-items: center;
-        }
-        .match-teams { font-size: 16px; font-weight: bold; flex: 2; }
-        .match-score-display {
-            font-size: 18px; font-weight: 800; background: #333; color: #fff;
-            padding: 5px 15px; border-radius: 4px; min-width: 60px; text-align: center;
-        }
-        .match-scorers-list {
-            margin-top: 8px; font-size: 13px; color: #555; border-top: 1px dashed #eee; padding-top: 5px;
-        }
+    .match-card {
+        background: #fff;
+        border: 1px solid var(--border-gray);
+        padding: 15px;
+        border-radius: 6px;
+        margin-bottom: 12px;
+        box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+    }
+    .match-main-info {
+        display: flex; justify-content: space-between; align-items: center;
+    }
+    .match-teams { font-size: 16px; font-weight: bold; flex: 2; }
+    .match-score-display {
+        font-size: 18px; font-weight: 800; background: #333; color: #fff;
+        padding: 5px 15px; border-radius: 4px; min-width: 60px; text-align: center;
+    }
+    .match-scorers-list {
+        margin-top: 8px; font-size: 13px; color: #555; border-top: 1px dashed #eee; padding-top: 5px;
+    }
 
-        .kasa-dan-blok {
-            margin-bottom: 25px; border: 2px solid var(--border-gray);
-            width: 100%; max-width: 320px; background: white; box-shadow: 0 2px 5px rgba(0,0,0,0.05);
-        }
-        .kasa-ukupno-header {
-            background-color: #1e7e34; color: #fff; padding: 8px 10px;
-            display: flex; justify-content: space-between; font-weight: bold; font-family: monospace; font-size: 16px;
-        }
-        .kasa-datum-sub { background-color: #333; color: white; text-align: center; padding: 6px; font-weight: bold; font-size: 14px; }
-        .kasa-stavka { display: flex; justify-content: space-between; padding: 8px 10px; border-bottom: 1px solid var(--border-gray); }
-        .kasa-grid { display: flex; flex-wrap: wrap; gap: 20px; }
+    .kasa-dan-blok {
+        margin-bottom: 25px; border: 2px solid var(--border-gray);
+        width: 100%; max-width: 320px; background: white; box-shadow: 0 2px 5px rgba(0,0,0,0.05);
+    }
+    .kasa-ukupno-header {
+        background-color: #1e7e34; color: #fff; padding: 8px 10px;
+        display: flex; justify-content: space-between; font-weight: bold; font-family: monospace; font-size: 16px;
+    }
+    .kasa-datum-sub { background-color: #333; color: white; text-align: center; padding: 6px; font-weight: bold; font-size: 14px; }
+    .kasa-stavka { display: flex; justify-content: space-between; padding: 8px 10px; border-bottom: 1px solid var(--border-gray); }
+    .kasa-grid { display: flex; flex-wrap: wrap; gap: 20px; }
 
-        .delete-btn { background-color: #ff4d4d; color: white; border: none; padding: 4px 8px; border-radius: 3px; cursor: pointer; }
+    .delete-btn { background-color: #ff4d4d; color: white; border: none; padding: 4px 8px; border-radius: 3px; cursor: pointer; }
 
-        .badge-kotizacija {
-            padding: 5px 10px; border-radius: 20px; font-size: 12px; font-weight: bold; cursor: pointer; border: none; text-align: center; display: inline-block;
-        }
-        .kotizacija-placeno { background-color: #d4edda; color: #155724; border: 1px solid #c3e6cb; }
-        .kotizacija-ceka { background-color: #f8d7da; color: #721c24; border: 1px solid #f5c6cb; }
+    .badge-kotizacija {
+        padding: 5px 10px; border-radius: 20px; font-size: 12px; font-weight: bold; cursor: pointer; border: none; text-align: center; display: inline-block;
+    }
+    .kotizacija-placeno { background-color: #d4edda; color: #155724; border: 1px solid #c3e6cb; }
+    .kotizacija-ceka { background-color: #f8d7da; color: #721c24; border: 1px solid #f5c6cb; }
 
-        .inputs-strelci-kontejner {
-            background: #eee; padding: 10px; margin-top: 10px; border-radius: 4px; display: none;
-        }
-        .strelac-input-row { display: flex; gap: 5px; margin-bottom: 5px; }
+    .inputs-strelci-kontejner {
+        background: #eee; padding: 10px; margin-top: 10px; border-radius: 4px; display: none;
+    }
+    .strelac-input-row { display: flex; gap: 5px; margin-bottom: 5px; }
 
-        .modal-profil {
-            display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%;
-            background: rgba(0,0,0,0.5); z-index: 1000; justify-content: center; align-items: center;
-        }
-        .modal-content {
-            background: white; width: 90%; max-width: 850px; max-height: 85vh;
-            overflow-y: auto; border-radius: 8px; padding: 25px; box-shadow: 0 4px 15px rgba(0,0,0,0.2); position: relative;
-        }
-        .close-modal { position: absolute; top: 15px; right: 20px; font-size: 28px; font-weight: bold; cursor: pointer; color: #666; }
-        .stats-badge-grid { display: flex; gap: 10px; flex-wrap: wrap; margin: 15px 0; }
-        .stat-badge { background: var(--bg-gray); padding: 10px 15px; border-radius: 4px; border: 1px solid var(--border-gray); text-align: center; min-width: 75px; }
-        .stat-badge span { display: block; font-size: 18px; font-weight: bold; color: var(--primary-blue); }
-        
-        #loading-overlay {
-            position: fixed; top:0; left:0; width:100%; height:100%; background:rgba(255,255,255,0.8);
-            z-index:9999; display:flex; justify-content:center; align-items:center; font-size:20px; font-weight:bold; color:var(--primary-blue);
-        }
-    </style>
+    .modal-profil {
+        display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+        background: rgba(0,0,0,0.5); z-index: 1000; justify-content: center; align-items: center;
+    }
+    .modal-content {
+        background: white; width: 90%; max-width: 850px; max-height: 85vh;
+        overflow-y: auto; border-radius: 8px; padding: 25px; box-shadow: 0 4px 15px rgba(0,0,0,0.2); position: relative;
+    }
+    .close-modal { position: absolute; top: 15px; right: 20px; font-size: 28px; font-weight: bold; cursor: pointer; color: #666; }
+    .stats-badge-grid { display: flex; gap: 10px; flex-wrap: wrap; margin: 15px 0; }
+    .stat-badge { background: var(--bg-gray); padding: 10px 15px; border-radius: 4px; border: 1px solid var(--border-gray); text-align: center; min-width: 75px; }
+    .stat-badge span { display: block; font-size: 18px; font-weight: bold; color: var(--primary-blue); }
+    
+    #loading-overlay {
+        position: fixed; top:0; left:0; width:100%; height:100%; background:rgba(255,255,255,0.8);
+        z-index:9999; display:flex; justify-content:center; align-items:center; font-size:20px; font-weight:bold; color:var(--primary-blue);
+    }
+
+    /* MOBILNA OPTIMIZACIJA - DODATO NA KRAJ */
+    @media screen and (max-width: 767px) {
+        body { padding: 5px; }
+        .grid-2col { grid-template-columns: 1fr; gap: 10px; }
+        .tab-btn { flex: 1; padding: 8px 5px; font-size: 13px; }
+        input, select, button.btn-submit { font-size: 16px !important; padding: 12px; }
+        .excel-table th, .excel-table td { padding: 5px; font-size: 12px; }
+        .modal-content { width: 100%; height: 100%; border-radius: 0; }
+    }
+</style>
 </head>
 <body>
 
