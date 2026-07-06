@@ -220,6 +220,12 @@
 
         .delete-btn { background-color: #ff4d4d; color: white; border: none; padding: 4px 8px; border-radius: 3px; cursor: pointer; }
 
+        .badge-kotizacija {
+            padding: 5px 10px; border-radius: 20px; font-size: 12px; font-weight: bold; cursor: pointer; border: none; text-align: center; display: inline-block;
+        }
+        .kotizacija-placeno { background-color: #d4edda; color: #155724; border: 1px solid #c3e6cb; }
+        .kotizacija-ceka { background-color: #f8d7da; color: #721c24; border: 1px solid #f5c6cb; }
+
         .inputs-strelci-kontejner {
             background: #eee; padding: 10px; margin-top: 10px; border-radius: 4px; display: none;
         }
@@ -261,7 +267,7 @@
     </div>
 
     <div class="tabs">
-        <button class="tab-btn active" onclick="switchTab(event, 'ekipe')">Ekipe</button>
+        <button class="tab-btn active" onclick="switchTab(event, 'ekipe')">Ekipe i Kotizacije</button>
         <button class="tab-btn" onclick="switchTab(event, 'tabela-tab')">Tabela Turnira</button>
         <button class="tab-btn" onclick="switchTab(event, 'utakmice')">Utakmice i Rezultati</button>
         <button class="tab-btn" onclick="switchTab(event, 'strelci-tab')">Lista Strelaca</button>
@@ -279,17 +285,22 @@
                             <label for="naziv-ekipe">Naziv ekipe:</label>
                             <input type="text" id="naziv-ekipe" placeholder="Unesite naziv tima..." required>
                         </div>
+                        <div class="form-group">
+                            <label for="iznos-kotizacije">Visina kotizacije za ovaj tim (RSD):</label>
+                            <input type="number" id="iznos-kotizacije" value="5000" min="0" required>
+                        </div>
                         <button type="submit" class="btn-submit">Dodaj Ekipu</button>
                     </form>
                 </div>
             </div>
             <div>
-                <h2>Lista Prijavljenih Ekipa</h2>
+                <h2>Lista Ekipa i Status Kotizacija</h2>
                 <table class="excel-table">
                     <thead>
                         <tr>
-                            <th>Naziv ekipe (klikni za detalje)</th>
-                            <th style="width: 80px; text-align: center;">Ukloni</th>
+                            <th>Naziv ekipe</th>
+                            <th style="width: 130px; text-align: center;">Kotizacija</th>
+                            <th style="width: 70px; text-align: center;">Ukloni</th>
                         </tr>
                     </thead>
                     <tbody id="lista-ekipa-upravljanje"></tbody>
@@ -451,7 +462,10 @@
 <div id="profil-modal" class="modal-profil" onclick="zatvoriProfil(event)">
     <div class="modal-content" onclick="event.stopPropagation()">
         <span class="close-modal" onclick="document.getElementById('profil-modal').style.display='none'">&times;</span>
-        <h2 id="modal-ime-ekipe">Ime Ekipe</h2>
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-right:40px; flex-wrap:wrap; gap:10px;">
+            <h2 id="modal-ime-ekipe">Ime Ekipe</h2>
+            <div id="modal-kotizacija-status-blok"></div>
+        </div>
         <hr style="margin: 10px 0;">
         <h3>Statistika na turniru</h3>
         <div class="stats-badge-grid">
@@ -493,21 +507,21 @@
 </div>
 
 <script>
-    // OVDE ZALEPITE VAŠ GOOGLE APPS SCRIPT URL LINK KOJI STE DOBILI NAKON DEPLOY-A
-    const GOOGLE_API_URL = 'https://script.google.com/macros/s/AKfycbxc-lMn5eiM4-KC_ZyAiSo64g8IAgR2JG8fipSopugGU0SoIUBasByuq7r_Y0yKNTU/exec';
+    // OVDE ZAMENI LINK SA TVOJIM NOVIM WEB APP URL LINKOM SA GOOGLE-A
+    const GOOGLE_API_URL = 'https://script.google.com/macros/s/AKfycbyr5dE_sl0yHSHDa7wrneeOgyGOX92iXG8aA7HUAt_B1fcIYs9RmkLJa2XP4XXD_NM/exec';
 
     let ekipe = [];
     let utakmice = [];
     let igraciPoEkipama = {}; 
     let pazarDani = [];
     let sviTroskovi = [];
+    let kotizacijeMape = {}; 
     let trenutnoOtvorenaEkipa = "";
 
     const danasnjiDatum = new Date().toISOString().split('T')[0];
     if(document.getElementById('pazar-datum')) document.getElementById('pazar-datum').value = danasnjiDatum;
     if(document.getElementById('trosak-datum')) document.getElementById('trosak-datum').value = danasnjiDatum;
 
-    // Sinhronizacija sa Cloud-om
     async function ucitajIzClouda() {
         document.getElementById('loading-overlay').style.display = 'flex';
         try {
@@ -518,7 +532,14 @@
             igraciPoEkipama = data.igraci || {};
             pazarDani = data.pazar || [];
             sviTroskovi = data.troskovi || [];
+            kotizacijeMape = data.kotizacije || {};
             
+            ekipe.forEach(ek => {
+                if(!kotizacijeMape[ek]) {
+                    kotizacijeMape[ek] = { iznos: 5000, placeno: false };
+                }
+            });
+
             osveziSveEkrane();
         } catch (error) {
             console.error("Greška pri čitanju baze:", error);
@@ -535,7 +556,8 @@
             utakmice: utakmice,
             igraci: igraciPoEkipama,
             pazar: pazarDani,
-            troskovi: sviTroskovi
+            troskovi: sviTroskovi,
+            kotizacije: kotizacijeMape
         };
         try {
             await fetch(GOOGLE_API_URL, {
@@ -570,12 +592,17 @@
     async function dodajEkipu(e) {
         e.preventDefault();
         const naziv = document.getElementById('naziv-ekipe').value.trim();
+        const iznos = parseFloat(document.getElementById('iznos-kotizacije').value) || 0;
         if(!naziv) return;
         if(ekipe.some(ek => ek.toLowerCase() === naziv.toLowerCase())) { alert('Ekipa već postoji!'); return; }
+        
         ekipe.push(naziv);
         igraciPoEkipama[naziv] = [];
+        kotizacijeMape[naziv] = { iznos: iznos, placeno: false };
+        
         document.getElementById('naziv-ekipe').value = '';
         osveziSportskiDeo();
+        izracunajGlavniFinansijskiBilans();
         await sacuvajUCloud();
     }
 
@@ -584,9 +611,30 @@
             ekipe = ekipe.filter(e => e !== naziv);
             utakmice = utakmice.filter(u => u.domacin !== naziv && u.gost !== naziv);
             delete igraciPoEkipama[naziv];
+            delete kotizacijeMape[naziv];
             osveziSportskiDeo();
+            izracunajGlavniFinansijskiBilans();
             await sacuvajUCloud();
         }
+    }
+
+    async function promeniStatusKotizacije(naziv) {
+        if(kotizacijeMape[naziv]) {
+            kotizacijeMape[naziv].placeno = !kotizacijeMape[naziv].placeno;
+            osveziSportskiDeo();
+            izracunajGlavniFinansijskiBilans();
+            if(document.getElementById('profil-modal').style.display === 'flex' && trenutnoOtvorenaEkipa === naziv) {
+                renderujStatusKotizacijeUModalu(naziv);
+            }
+            await sacuvajUCloud();
+        }
+    }
+
+    function renderujStatusKotizacijeUModalu(naziv) {
+        const blok = document.getElementById('modal-kotizacija-status-blok');
+        if(!blok || !kotizacijeMape[naziv]) return;
+        const info = kotizacijeMape[naziv];
+        blok.innerHTML = `<button class="badge-kotizacija ${info.placeno ? 'kotizacija-placeno' : 'kotizacija-ceka'}" onclick="promeniStatusKotizacije('${naziv}')">Kotizacija (${info.iznos} RSD): ${info.placeno ? '✔ PLAĆENO' : '❌ NIJE PLAĆENO'}</button>`;
     }
 
     function generisiPoljaZaStrelce() {
@@ -674,6 +722,7 @@
     function otvoriProfil(naziv) {
         trenutnoOtvorenaEkipa = naziv;
         document.getElementById('modal-ime-ekipe').textContent = "Profil: " + naziv;
+        renderujStatusKotizacijeUModalu(naziv);
         document.getElementById('profil-modal').style.display = 'flex';
         let ou = 0, p = 0, n = 0, i = 0, dg = 0, pg = 0; let htmlMecevi = "";
         const goloviBrojac = {}; const roster = igraciPoEkipama[naziv] || [];
@@ -737,7 +786,19 @@
         const listaEkipaBody = document.getElementById('lista-ekipa-upravljanje');
         if(listaEkipaBody) {
             listaEkipaBody.innerHTML = '';
-            ekipe.forEach(ek => { const tr = document.createElement('tr'); tr.innerHTML = `<td><strong class="link-ekipa" onclick="otvoriProfil('${ek}')">⚽ ${ek}</strong></td><td style="text-align:center;"><button class="delete-btn" onclick="obrisiEkipu('${ek}')">X</button></td>`; listaEkipaBody.appendChild(tr); });
+            ekipe.forEach(ek => { 
+                const tr = document.createElement('tr'); 
+                const kInfo = kotizacijeMape[ek] || { iznos: 5000, placeno: false };
+                const badgeKlasa = kInfo.placeno ? 'kotizacija-placeno' : 'kotizacija-ceka';
+                const badgeTekst = kInfo.placeno ? `✔ Plaćeno (${kInfo.iznos})` : `❌ Čeka (${kInfo.iznos})`;
+                
+                tr.innerHTML = `
+                    <td><strong class="link-ekipa" onclick="otvoriProfil('${ek}')">⚽ ${ek}</strong></td>
+                    <td style="text-align:center;"><button class="badge-kotizacija ${badgeKlasa}" onclick="promeniStatusKotizacije('${ek}')">${badgeTekst}</button></td>
+                    <td style="text-align:center;"><button class="delete-btn" onclick="obrisiEkipu('${ek}')">X</button></td>
+                `; 
+                listaEkipaBody.appendChild(tr); 
+            });
         }
         const stats = {}; ekipe.forEach(e => { stats[e] = { ime: e, ou: 0, p: 0, n: 0, i: 0, bod: 0, daci: 0, primljeni: 0 }; });
         utakmice.forEach(u => {
@@ -822,16 +883,27 @@
     }
 
     function izracunajGlavniFinansijskiBilans() {
-        let ukupnaZarada = 0; pazarDani.forEach(d => ukupnaZarada += d.ukupno);
-        let ukupniTroskovi = 0; sviTroskovi.forEach(t => ukupniTroskovi += t.iznos);
+        let ukupnaZarada = 0; 
+        pazarDani.forEach(d => ukupnaZarada += d.ukupno);
+        
+        Object.values(kotizacijeMape).forEach(k => {
+            if(k.placeno) ukupnaZarada += k.iznos;
+        });
+
+        let ukupniTroskovi = 0; 
+        sviTroskovi.forEach(t => ukupniTroskovi += t.iznos);
+        
         let cistSaldo = ukupnaZarada - ukupniTroskovi;
+        
         document.getElementById('ukupno-zarada-prikaz').textContent = ukupnaZarada.toLocaleString() + " RSD";
         document.getElementById('ukupno-troskovi-prikaz').textContent = ukupniTroskovi.toLocaleString() + " RSD";
-        const saldoElement = document.getElementById('cist-saldo-prikaz'); saldoElement.textContent = cistSaldo.toLocaleString() + " RSD";
+        
+        const saldoElement = document.getElementById('cist-saldo-prikaz'); 
+        saldoElement.textContent = cistSaldo.toLocaleString() + " RSD";
+        
         if(cistSaldo > 0) { saldoElement.style.color = "#00ff00"; } else if(cistSaldo < 0) { saldoElement.style.color = "#ff4d4d"; } else { saldoElement.style.color = "#ffffff"; }
     }
 
-    // Inicijalno pokretanje i sinhronizacija pri otvaranju fajla
     ucitajIzClouda();
 </script>
 
