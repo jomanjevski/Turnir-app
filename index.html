@@ -5,6 +5,19 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Organizacija Turnira - Panel za Organizatore</title>
     <style>
+        /* Ovo čini da sve bude lepo na telefonu, bez menjanja funkcionalnosti */
+.container {
+    padding: 10px;
+}
+.grid-2col {
+    display: flex;
+    flex-direction: column; /* Ovo slaže elemente jedan ispod drugog na mobilnom */
+}
+input, select, button {
+    font-size: 16px !important; /* Ovo sprečava zumiranje na iPhone-u prilikom klika */
+    padding: 12px !important;
+}
+        
         :root {
             --primary-blue: #0073c4;
             --dark-blue: #005691;
