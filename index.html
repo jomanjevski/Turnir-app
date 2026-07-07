@@ -357,9 +357,10 @@
         </div>
     </div>
 
+    <!-- HRONOLOŠKI RASPORED PO DANIMA -->
     <div id="raspored-tab" class="tab-content">
         <h2>Hronološki Raspored Utakmica po Danima</h2>
-        <p style="font-size: 14px; color: #666; margin-bottom: 20px;">Igraju se tačno 3 utakmice dnevno (izbalansirano 2 iz jedne grupe, 1 iz druge grupe). Turnir zvanično otvara ekipa <b>Kiseli krastavci</b>.</p>
+        <p style="font-size: 14px; color: #666; margin-bottom: 20px;">Igraju se tačno 3 utakmice dnevno. Turnir otvara ekipa <b>Kiseli krastavci</b>. Algoritam maksimalno izbegava da bilo koja ekipa igra dva dana uzastopno (back-to-back).</p>
         <div class="sched-phase-block">
             <div id="hronoloski-raspored-kontejner"></div>
         </div>
@@ -520,6 +521,7 @@
     </div>
 </div>
 
+<!-- MODAL PROFIL EKIPE -->
 <div id="profil-modal" class="modal-profil" onclick="zatvoriProfil(event)">
     <div class="modal-content" onclick="event.stopPropagation()">
         <span class="close-modal" onclick="document.getElementById('profil-modal').style.display='none'">&times;</span>
@@ -959,7 +961,7 @@
         });
     }
 
-    // --- FIKSIRANA I ISPRAVLJENA FUNKCIJA ZA DINAMIČKI RASPORED ---
+    // --- PAMETNI ALGORITAM: SHUFFLE + FIKSIRANO OTVARANJE + STOP ZA BACK-TO-BACK DANE ---
     function generisiRasporedPoDanima() {
         const kontejner = document.getElementById('hronoloski-raspored-kontejner');
         if (!kontejner) return;
@@ -987,15 +989,23 @@
             return;
         }
 
+        // Fisher-Yates mešanje parova
+        for (let i = sviParovi.length - 1; i > 0; i--) {
+            const j = Math.floor(Math.random() * (i + 1));
+            [sviParovi[i], sviParovi[j]] = [sviParovi[j], sviParovi[i]];
+        }
+
         let preostaliMecevi = [...sviParovi];
         let rasporedDani = [];
         let trenutniDanIndex = 1;
-        let odigraniMaceviEkipePoDanu = {};
 
-        // --- FIKSIRANJE PRVOG MEČA PRVOG DANA (KISELI KRASTAVCI OTVARAJU TURNIR) ---
+        // Registrovanje ko je kada igrao (da izbegnemo back-to-back dane)
+        let ekipeKojeSuIgralePrethodnogDana = new Set();
+
+        // Fiksiranje otvaranja: Kiseli krastavci Dan 1, Meč 1
         let prvaUtakmicaFiksirana = false;
         let meceviZaDan1 = [];
-        odigraniMaceviEkipePoDanu[1] = new Set();
+        let timoviKojiIgrajuDanas = new Set();
 
         let indexKrastavaca = preostaliMecevi.findIndex(m => 
             m.domacin.toLowerCase() === "kiseli krastavci" || m.gost.toLowerCase() === "kiseli krastavci"
@@ -1004,51 +1014,70 @@
         if (indexKrastavaca !== -1) {
             let prvaTekma = preostaliMecevi.splice(indexKrastavaca, 1)[0];
             meceviZaDan1.push(prvaTekma);
-            odigraniMaceviEkipePoDanu[1].add(prvaTekma.domacin);
-            odigraniMaceviEkipePoDanu[1].add(prvaTekma.gost);
+            timoviKojiIgrajuDanas.add(prvaTekma.domacin);
+            timoviKojiIgrajuDanas.add(prvaTekma.gost);
             prvaUtakmicaFiksirana = true;
         }
 
-        // --- GLAVNA PETLJA ZA RASPOREĐIVANJE ---
         while (preostaliMecevi.length > 0) {
             let dnevniMecevi = [];
+            timoviKojiIgrajuDanas = new Set();
+
+            // Ako je prvi dan i imamo spremno fiksirano otvaranje
             if (trenutniDanIndex === 1 && prvaUtakmicaFiksirana) {
                 dnevniMecevi = [...meceviZaDan1];
+                dnevniMecevi.forEach(m => {
+                    timoviKojiIgrajuDanas.add(m.domacin);
+                    timoviKojiIgrajuDanas.add(m.gost);
+                });
             }
 
-            if (!odigraniMaceviEkipePoDanu[trenutniDanIndex]) {
-                odigraniMaceviEkipePoDanu[trenutniDanIndex] = new Set();
-            }
-
-            let pokusaji = 0;
-            while (dnevniMecevi.length < 3 && preostaliMecevi.length > 0 && pokusaji < preostaliMecevi.length) {
-                let mec = preostaliMecevi[pokusaji];
-
-                // Uslov: Ekipe ne smeju već igrati tog dana
-                if (!odigraniMaceviEkipePoDanu[trenutniDanIndex].has(mec.domacin) && 
-                    !odigraniMaceviEkipePoDanu[trenutniDanIndex].has(mec.gost)) {
+            // Korak 1: Pokušaj da ubaciš utakmice gde niko nije igrao ni DANAS ni JUČE (Prioritet 1)
+            let i = 0;
+            while (dnevniMecevi.length < 3 && i < preostaliMecevi.length) {
+                let mec = preostaliMecevi[i];
+                if (!timoviKojiIgrajuDanas.has(mec.domacin) && !timoviKojiIgrajuDanas.has(mec.gost) &&
+                    !ekipeKojeSuIgralePrethodnogDana.has(mec.domacin) && !ekipeKojeSuIgralePrethodnogDana.has(mec.gost)) {
                     
-                    preostaliMecevi.splice(pokusaji, 1);
+                    preostaliMecevi.splice(i, 1);
                     dnevniMecevi.push(mec);
-                    
-                    odigraniMaceviEkipePoDanu[trenutniDanIndex].add(mec.domacin);
-                    odigraniMaceviEkipePoDanu[trenutniDanIndex].add(mec.gost);
+                    timoviKojiIgrajuDanas.add(mec.domacin);
+                    timoviKojiIgrajuDanas.add(mec.gost);
                 } else {
-                    pokusaji++;
+                    i++;
                 }
             }
 
-            // Ako algoritam upadne u blokadu zbog rasporeda slobodnih ekipa, nasilno uzimamo prvi sledeći meč
+            // Korak 2: Ako nema dovoljno takvih parova, popusti kriterijum i dozvoli ekipu koja je igrala juče (ali ne i danas)
+            i = 0;
+            while (dnevniMecevi.length < 3 && i < preostaliMecevi.length) {
+                let mec = preostaliMecevi[i];
+                if (!timoviKojiIgrajuDanas.has(mec.domacin) && !timoviKojiIgrajuDanas.has(mec.gost)) {
+                    preostaliMecevi.splice(i, 1);
+                    dnevniMecevi.push(mec);
+                    timoviKojiIgrajuDanas.add(mec.domacin);
+                    timoviKojiIgrajuDanas.add(mec.gost);
+                } else {
+                    i++;
+                }
+            }
+
+            // Korak 3: Iznuđeni presek ako je matematički nemoguće (samo da ne pukne petlja pri kraju turnira)
             if (dnevniMecevi.length < 3 && preostaliMecevi.length > 0) {
                 let iznudjenMec = preostaliMecevi.shift();
                 dnevniMecevi.push(iznudjenMec);
+                timoviKojiIgrajuDanas.add(iznudjenMec.domacin);
+                timoviKojiIgrajuDanas.add(iznudjenMec.gost);
             }
 
             rasporedDani.push({ dan: trenutniDanIndex, mecevi: dnevniMecevi });
+
+            // Postavi trenutne timove kao "one koji su igrali juče" za sledeći krug
+            ekipeKojeSuIgralePrethodnogDana = new Set(timoviKojiIgrajuDanas);
             trenutniDanIndex++;
         }
 
-        // Renderovanje rasporeda u HTML interfejs
+        // Renderovanje u HTML
         rasporedDani.forEach(d => {
             const divDan = document.createElement('div');
             divDan.className = 'dan-blok';
@@ -1058,7 +1087,6 @@
                 const divMec = document.createElement('div');
                 divMec.className = 'sched-match-row';
                 
-                // Oznaka za otvaranje celog turnira (samo Prvi meč Prvog dana!)
                 let otvaranjeZnak = (d.dan === 1 && i === 0) ? ' <span style="color:var(--green-success); font-weight:bold;">(🔥 Otvaranje turnira)</span>' : '';
 
                 divMec.innerHTML = `
@@ -1097,7 +1125,7 @@
         
         fCon.innerHTML = `
             <div class="knockout-match-row" style="border-left: 4px solid #ff9900;"><div>🥉 <b>Za 3. mesto:</b> Gubitnik PF1 vs Gubitnik PF2</div></div>
-            <div class="knockout-match-row" style="border-left: 4px solid #gold; background:#fffdf0;"><div>🏆 <b>FINALE TURNIRA:</b> Pobednik PF1 vs Pobednik PF2</div></div>`;
+            <div class="knockout-match-row" style="border-left: 4px solid gold; background:#fffdf0;"><div>🏆 <b>FINALE TURNIRA:</b> Pobednik PF1 vs Pobednik PF2</div></div>`;
     }
 
     async function dodajPazar(e) {
@@ -1179,7 +1207,6 @@
 
     function zatvoriProfil(e) { document.getElementById('profil-modal').style.display = 'none'; }
 
-    // Pokretanje aplikacije i povlačenje Cloud podataka odmah pri učitavanju stranice
     window.onload = ucitajIzClouda;
 </script>
 </body>
