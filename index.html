@@ -254,14 +254,14 @@
         background: #333; color: white; padding: 8px 12px; border-radius: 4px; margin-top: 20px; font-size: 18px;
     }
 
-    /* Stilovi za nokaut fazu */
-    .knockout-phase-block {
+    /* Stilovi za nokaut i raspored fazu */
+    .knockout-phase-block, .sched-phase-block {
         margin-bottom: 30px; background: #fdfdfd; border: 1px solid var(--border-gray); padding: 15px; border-radius: 6px;
     }
-    .knockout-phase-title {
+    .knockout-phase-title, .sched-phase-title {
         font-size: 18px; font-weight: bold; color: var(--dark-blue); border-bottom: 2px solid var(--primary-blue); padding-bottom: 5px; margin-bottom: 15px;
     }
-    .knockout-match-row {
+    .knockout-match-row, .sched-match-row {
         display: flex; align-items: center; justify-content: space-between; background: white; padding: 10px; border: 1px solid #eee; margin-bottom: 8px; border-radius: 4px;
     }
     .btn-generate-match {
@@ -269,6 +269,10 @@
     }
     .btn-generate-match:disabled {
         background-color: #bbb; cursor: not-allowed;
+    }
+
+    .kolo-naslov {
+        background: #e6f2ff; color: var(--dark-blue); padding: 5px 10px; font-weight: bold; font-size: 14px; margin: 10px 0 5px 0; border-radius: 4px;
     }
 
     @media screen and (max-width: 767px) {
@@ -299,6 +303,7 @@
 
     <div class="tabs">
         <button class="tab-btn active" onclick="switchTab(event, 'ekipe')">Ekipe i Kotizacije</button>
+        <button class="tab-btn" onclick="switchTab(event, 'raspored-tab')">Raspored (Grupna faza)</button>
         <button class="tab-btn" onclick="switchTab(event, 'tabela-tab')">Tabela Turnira</button>
         <button class="tab-btn" onclick="switchTab(event, 'utakmice')">Utakmice i Rezultati</button>
         <button class="tab-btn" onclick="switchTab(event, 'nokaut-tab')">Nokaut Faza</button>
@@ -345,6 +350,22 @@
                     </thead>
                     <tbody id="lista-ekipa-upravljanje"></tbody>
                 </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- DINAMIČKI RASPORED PO KOLIMA -->
+    <div id="raspored-tab" class="tab-content">
+        <h2>Automatski Raspored Utakmica po Kolima</h2>
+        <p style="font-size: 14px; color: #666; margin-bottom: 20px;">Sistem sam generiše Bergerove parove (svako sa svakim) čim dodaš ili premestiš ekipu u grupu.</p>
+        <div class="grid-2col">
+            <div class="sched-phase-block">
+                <div class="sched-phase-title">Grupa A — Raspored</div>
+                <div id="raspored-grupa-A"></div>
+            </div>
+            <div class="sched-phase-block">
+                <div class="sched-phase-title">Grupa B — Raspored</div>
+                <div id="raspored-grupa-B"></div>
             </div>
         </div>
     </div>
@@ -400,7 +421,6 @@
         </div>
     </div>
 
-    <!-- NOKAUT FAZA TAB -->
     <div id="nokaut-tab" class="tab-content">
         <h2>Kostur Nokaut Faze Takmičenja</h2>
         <p style="font-size: 14px; color: #666; margin-bottom: 20px;">Sistem automatski uzima top 4 ekipe iz Grupe A i Grupe B i kreira direktno Četvrtfinale.</p>
@@ -646,6 +666,7 @@
 
     function osveziSveEkrane() {
         osveziSportskiDeo();
+        generisiRasporedGrupneFaze();
         renderujZlatnuKopacku();
         renderujPazareKase();
         renderujTroskoveRashode();
@@ -666,15 +687,14 @@
         const naziv = document.getElementById('naziv-ekipe').value.trim();
         const telefon = document.getElementById('telefon-ekipe').value.trim();
         const grupa = document.getElementById('grupa-ekipe').value;
-        const iznos = 15000; // Fiksna vrednost kotizacije automatski
         
         if(!naziv) return;
         if(ekipe.some(ek => ek.toLowerCase() === naziv.toLowerCase())) { alert('Ekipa već postoji!'); return; }
         
         ekipe.push(naziv);
         igraciPoEkipama[naziv] = [];
-        kotizacijeMape[naziv] = { iznos: iznos, placeno: false };
-        infoEkipaMape[naziv] = { telefon: telefon, grupa: grupa };
+        kotizacijeMape[naziv] = { iznos: 15000, placeno: false };
+        infoEkipaMape[naziv] = { telefon: telefon, groupa: grupa, grupa: grupa };
         
         document.getElementById('naziv-ekipe').value = '';
         document.getElementById('telefon-ekipe').value = '';
@@ -728,7 +748,7 @@
         roster.forEach(ig => goloviBrojac[ig] = 0);
         
         utakmice.forEach(u => {
-            if(u.domacin === presidential || u.domacin === naziv || u.gost === naziv) {
+            if(u.domacin === naziv || u.gost === naziv) {
                 ou++; let isDomacin = (u.domacin === naziv);
                 let mojeG = isDomacin ? u.goloviD : u.goloviG; let tudjeG = isDomacin ? u.goloviG : u.goloviD;
                 dg += mojeG; pg += tudjeG;
@@ -748,9 +768,7 @@
         const novaGrupa = document.getElementById('modal-edit-grupa').value;
         const noviTelefon = document.getElementById('modal-edit-telefon').value.trim();
         
-        if(!infoEkipaMape[trenutnoOtvorenaEkipa]) {
-            infoEkipaMape[trenutnoOtvorenaEkipa] = {};
-        }
+        if(!infoEkipaMape[trenutnoOtvorenaEkipa]) infoEkipaMape[trenutnoOtvorenaEkipa] = {};
         
         infoEkipaMape[trenutnoOtvorenaEkipa].grupa = novaGrupa;
         infoEkipaMape[trenutnoOtvorenaEkipa].telefon = noviTelefon;
@@ -939,6 +957,77 @@
         }
     }
 
+    /* ALGORITAM ZA AUTOMATSKO GENERISANJE BERGEROVOG RASPOREDA (ROUND ROBIN) */
+    function generisiRasporedZaNizTimova(timovi) {
+        let lista = [...timovi];
+        if (lista.length === 0) return [];
+        if (lista.length % 2 !== 0) {
+            lista.push("PAUZA"); // Slobodna ekipa u kolu ako je neparan broj
+        }
+        
+        let brTimova = lista.length;
+        let brKola = brTimova - 1;
+        let meceviPoKolima = [];
+
+        for (let kolo = 0; kolo < brKola; kolo++) {
+            let paroviKola = [];
+            for (let i = 0; i < brTimova / 2; i++) {
+                let domacin = lista[i];
+                let gost = lista[brTimova - 1 - i];
+                if (domacin !== "PAUZA" && gost !== "PAUZA") {
+                    paroviKola.push({ domacin, gost });
+                }
+            }
+            meceviPoKolima.push({ kolo: kolo + 1, parovi: paroviKola });
+            // Rotacija elemenata (svi osim prvog se pomeraju u krug)
+            lista.splice(1, 0, lista.pop());
+        }
+        return meceviPoKolima;
+    }
+
+    function generisiRasporedGrupneFaze() {
+        const grupeEkipe = { A: [], B: [] };
+        ekipe.forEach(ek => {
+            const inf = infoEkipaMape[ek] || { grupa: "A" };
+            if(grupeEkipe[inf.grupa]) grupeEkipe[inf.grupa].push(ek);
+        });
+
+        ["A", "B"].forEach(gr => {
+            const kontejner = document.getElementById(`raspored-grupa-${gr}`);
+            if(!kontejner) return;
+            kontejner.innerHTML = "";
+
+            const rasporedKola = generisiRasporedZaNizTimova(grupeEkipe[gr]);
+            if(rasporedKola.length === 0) {
+                kontejner.innerHTML = "<p style='color:#888; font-size:13px;'>Nema dodatih ekipa u ovoj grupi.</p>";
+                return;
+            }
+
+            rasporedKola.forEach(k => {
+                if(k.parovi.length === 0) return;
+                const divKolo = document.createElement('div');
+                divKolo.innerHTML = `<div class="kolo-naslov">Kolo ${k.kolo}</div>`;
+                
+                k.parovi.forEach(p => {
+                    const odigrano = proveriDaLiMecPostoji(p.domacin, p.gost);
+                    const mec = utakmice.find(u => (u.domacin === p.domacin && u.gost === p.gost) || (u.domacin === p.gost && u.gost === p.domacin));
+                    let rezTekst = odigrano ? ` (<b>${mec.goloviD}:${mec.goloviG}</b>)` : "";
+                    
+                    const red = document.createElement('div');
+                    red.className = "sched-match-row";
+                    red.innerHTML = `
+                        <div style="font-size:14px;">🤝 ${p.domacin} vs ${p.gost} ${rezTekst}</div>
+                        <button class="btn-generate-match" ${odigrano ? 'disabled style="background:#bbb;"' : ''} onclick="kreirajMecUNokautu('${p.domacin}', '${p.gost}')">
+                            ${odigrano ? 'Odigrano' : 'Zakaži meč'}
+                        </button>
+                    `;
+                    divKolo.appendChild(red);
+                });
+                kontejner.appendChild(divKolo);
+            });
+        });
+    }
+
     function nadjiPobednikaMeca(tim1, tim2) {
         const mec = utakmice.find(u => (u.domacin === tim1 && u.gost === tim2) || (u.domacin === tim2 && u.gost === tim1));
         if(!mec) return null;
@@ -958,7 +1047,7 @@
         if(!t1 || !t2) { alert("Timovi nisu definisani!"); return; }
         document.getElementById('tim-domacin').value = t1;
         document.getElementById('tim-gost').value = t2;
-        switchTab({ currentTarget: document.querySelectorAll('.tab-btn')[2] }, 'utakmice');
+        switchTab({ currentTarget: document.querySelectorAll('.tab-btn')[3] }, 'utakmice');
         generisiPoljaZaStrelce();
     }
 
@@ -969,7 +1058,6 @@
         const tA1 = pA[0] || "A1"; const tA2 = pA[1] || "A2"; const tA3 = pA[2] || "A3"; const tA4 = pA[3] || "A4";
         const tB1 = pB[0] || "B1"; const tB2 = pB[1] || "B2"; const tB3 = pB[2] || "B3"; const tB4 = pB[3] || "B4";
 
-        // 1/4 FINALE PAROVI
         const cfParovi = [
             { id: "cf1", l: "Četvrtfinale 1 (A1 – B4)", t1: tA1, t2: tB4 },
             { id: "cf2", l: "Četvrtfinale 2 (A2 – B3)", t1: tA2, t2: tB3 },
@@ -988,13 +1076,11 @@
         });
         document.getElementById('cetvrtfinale-matches-container').innerHTML = htmlCF;
 
-        // Pobednici Četvrtfinala
         const pobCF1 = nadjiPobednikaMeca(tA1, tB4);
         const pobCF2 = nadjiPobednikaMeca(tA2, tB3);
         const pobCF3 = nadjiPobednikaMeca(tB1, tA4);
         const pobCF4 = nadjiPobednikaMeca(tB2, tA3);
 
-        // POLUFINALE
         const tPF1_1 = pobCF1 || "Pobednik 1/4 (A1-B4)";
         const tPF1_2 = pobCF4 || "Pobednik 1/4 (B2-A3)";
         const tPF2_1 = pobCF2 || "Pobednik 1/4 (A2-B3)";
@@ -1021,7 +1107,6 @@
         `;
         document.getElementById('polufinale-matches-container').innerHTML = htmlPF;
 
-        // FINALE I 3. MESTO
         const tFinale1 = pobPF1 || "Pobednik Polufinala 1";
         const tFinale2 = pobPF2 || "Pobednik Polufinala 2";
         const spremanFinale = pobPF1 && pobPF2;
@@ -1033,7 +1118,6 @@
             <button class="btn-generate-match" ${!spremanFinale || postojiFinale ? 'disabled' : ''} onclick="kreirajMecUNokautu('${pobPF1}', '${pobPF2}')">${postojiFinale ? 'Odigrano' : 'Generiši meč'}</button>
         </div>`;
 
-        // Poraženi za 3. mesto
         let porPF1 = null; if(postojiPF1 && pobPF1) porPF1 = (pobPF1 === pobCF1) ? pobCF4 : pobCF1;
         let porPF2 = null; if(postojiPF2 && pobPF2) porPF2 = (pobPF2 === pobCF2) ? pobCF3 : pobCF2;
 
@@ -1044,7 +1128,7 @@
         const treceMesto = spremanTreco ? nadjiPobednikaMeca(porPF1, porPF2) : null;
 
         htmlFinale += `<div class="knockout-match-row" style="border-left: 4px solid #cd7f32; margin-top: 15px;">
-            <div><b>🥉 Utakmice za 3. mesto:</b> ${tTreco1} vs ${tTreco2} ${treceMesto ? ` -> 🥉 <b>3. Mesto: ${treceMesto}</b>` : ''}</div>
+            <div><b>🥉 Utakmica za 3. mesto:</b> ${tTreco1} vs ${tTreco2} ${treceMesto ? ` -> 🥉 <b>3. Mesto: ${treceMesto}</b>` : ''}</div>
             <button class="btn-generate-match" ${!spremanTreco || postojiTreco ? 'disabled' : ''} onclick="kreirajMecUNokautu('${porPF1}', '${porPF2}')">${postojiTreco ? 'Odigrano' : 'Generiši meč'}</button>
         </div>`;
 
