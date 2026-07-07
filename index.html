@@ -326,8 +326,6 @@
                             <select id="grupa-ekipe" required>
                                 <option value="A">Grupa A</option>
                                 <option value="B">Grupa B</option>
-                                <option value="C">Grupa C</option>
-                                <option value="D">Grupa D</option>
                             </select>
                         </div>
                         <div class="form-group">
@@ -409,25 +407,20 @@
     <!-- NOKAUT FAZA TAB -->
     <div id="nokaut-tab" class="tab-content">
         <h2>Kostur Nokaut Faze Takmičenja</h2>
-        <p style="font-size: 14px; color: #666; margin-bottom: 20px;">Sistem automatski računa pozicije na osnovu tabele grupa A i B (prvih 5 prolazi, šesti ispada).</p>
+        <p style="font-size: 14px; color: #666; margin-bottom: 20px;">Sistem automatski uzima top 4 ekipe iz Grupe A i Grupe B i kreira direktno Četvrtfinale.</p>
         
         <div class="knockout-phase-block">
-            <div class="knockout-phase-title">1. Baraž za Četvrtfinale</div>
-            <div id="baraz-matches-container"></div>
-        </div>
-
-        <div class="knockout-phase-block">
-            <div class="knockout-phase-title">2. Četvrtfinale</div>
+            <div class="knockout-phase-title">1. Četvrtfinale (1/4 finala)</div>
             <div id="cetvrtfinale-matches-container"></div>
         </div>
 
         <div class="knockout-phase-block">
-            <div class="knockout-phase-title">3. Polufinale</div>
+            <div class="knockout-phase-title">2. Polufinale (1/2 finala)</div>
             <div id="polufinale-matches-container"></div>
         </div>
 
         <div class="knockout-phase-block">
-            <div class="knockout-phase-title">4. Utakmica za 3. mesto i Finale</div>
+            <div class="knockout-phase-title">3. Utakmica za 3. mesto i Finale</div>
             <div id="finale-matches-container"></div>
         </div>
     </div>
@@ -529,8 +522,6 @@
                         <select id="modal-edit-grupa" style="width:110px; padding:5px;">
                             <option value="A">Grupa A</option>
                             <option value="B">Grupa B</option>
-                            <option value="C">Grupa C</option>
-                            <option value="D">Grupa D</option>
                         </select>
                     </div>
                     <div>
@@ -596,7 +587,7 @@
     let kotizacijeMape = {}; 
     let trenutnoOtvorenaEkipa = "";
     
-    let poredakPoGrupama = { A: [], B: [], C: [], D: [] };
+    let poredakPoGrupama = { A: [], B: [] };
 
     const danasnjiDatum = new Date().toISOString().split('T')[0];
     if(document.getElementById('pazar-datum')) document.getElementById('pazar-datum').value = danasnjiDatum;
@@ -616,11 +607,11 @@
             kotizacijeMape = data.kotizacije || {};
             
             ekipe.forEach(ek => {
-    if(!kotizacijeMape[ek]) kotizacijeMape[ek] = { iznos: 15000, placeno: false };
-    if(!infoEkipaMape[ek] || !infoEkipaMape[ek].grupa) {
-        infoEkipaMape[ek] = { telefon: infoEkipaMape[ek]?.telefon || "Bez telefona", grupa: "A" };
-    }
-});
+                if(!kotizacijeMape[ek]) kotizacijeMape[ek] = { iznos: 15000, placeno: false };
+                if(!infoEkipaMape[ek] || !infoEkipaMape[ek].grupa) {
+                    infoEkipaMape[ek] = { telefon: infoEkipaMape[ek]?.telefon || "Bez telefona", grupa: "A" };
+                }
+            });
 
             osveziSveEkrane();
         } catch (error) {
@@ -728,7 +719,7 @@
         trenutnoOtvorenaEkipa = naziv;
         document.getElementById('modal-ime-ekipe').textContent = "Profil: " + naziv;
         
-        const inf = infoEkipaMape[naziv] || { telefon: "", grupa: "A" };
+        const inf = infoEkipaMape[naziv] || { telefon: "Bez telefona", grupa: "A" };
         document.getElementById('modal-edit-grupa').value = inf.grupa;
         document.getElementById('modal-edit-telefon').value = inf.telefon;
         
@@ -760,13 +751,16 @@
         const novaGrupa = document.getElementById('modal-edit-grupa').value;
         const noviTelefon = document.getElementById('modal-edit-telefon').value.trim();
         
-        if(infoEkipaMape[trenutnoOtvorenaEkipa]) {
-            infoEkipaMape[trenutnoOtvorenaEkipa].grupa = novaGrupa;
-            infoEkipaMape[trenutnoOtvorenaEkipa].telefon = noviTelefon;
-            alert(`Izmene za ekipu "${trenutnoOtvorenaEkipa}" uspešno sačuvane!`);
-            osveziSveEkrane();
-            await sacuvajUCloud();
+        if(!infoEkipaMape[trenutnoOtvorenaEkipa]) {
+            infoEkipaMape[trenutnoOtvorenaEkipa] = {};
         }
+        
+        infoEkipaMape[trenutnoOtvorenaEkipa].grupa = novaGrupa;
+        infoEkipaMape[trenutnoOtvorenaEkipa].telefon = noviTelefon;
+        
+        alert(`Uspešno sačuvano: Grupa ${novaGrupa}, Tel: ${noviTelefon}`);
+        osveziSveEkrane();
+        await sacuvajUCloud();
     }
 
     function generisiPoljaZaStrelce() {
@@ -860,7 +854,7 @@
             ekipe.forEach(ek => { 
                 const tr = document.createElement('tr'); 
                 const kInfo = kotizacijeMape[ek] || { iznos: 15000, placeno: false };
-                const inf = infoEkipaMape[ek] || { telefon: "Nema", grupa: "A" };
+                const inf = infoEkipaMape[ek] || { telefon: "Bez telefona", grupa: "A" };
                 const badgeKlasa = kInfo.placeno ? 'kotizacija-placeno' : 'kotizacija-ceka';
                 const badgeTekst = kInfo.placeno ? `✔ Plaćeno (${kInfo.iznos})` : `❌ Čeka (${kInfo.iznos})`;
                 
@@ -874,9 +868,8 @@
             });
         }
 
-        // RAČUNANJE STRUKTURIRANIH TABELA
         const stats = {}; ekipe.forEach(e => { 
-            const inf = infoEkipaMape[e] || { telefon: "Nema", grupa: "A" };
+            const inf = infoEkipaMape[e] || { telefon: "Bez telefona", grupa: "A" };
             stats[e] = { ime: e, grupa: inf.grupa, ou: 0, p: 0, n: 0, i: 0, bod: 0, daci: 0, primljeni: 0 }; 
         });
         
@@ -889,11 +882,11 @@
             }
         });
 
-        poredakPoGrupama = { A: [], B: [], C: [], D: [] };
+        poredakPoGrupama = { A: [], B: [] };
         const kontejnerZaTabele = document.getElementById('kontejner-za-grupe-tabele');
         if(kontejnerZaTabele) {
             kontejnerZaTabele.innerHTML = '';
-            const sveGrupe = ["A", "B", "C", "D"];
+            const sveGrupe = ["A", "B"];
             
             sveGrupe.forEach(gr => {
                 const timoviUGrupi = Object.values(stats).filter(t => t.grupa === gr);
@@ -949,12 +942,10 @@
         }
     }
 
-    // LOGIKA GENERISANJA NOKAUT FAZE
     function nadjiPobednikaMeca(tim1, tim2) {
-        // Tražimo meč u istoriji
         const mec = utakmice.find(u => (u.domacin === tim1 && u.gost === tim2) || (u.domacin === tim2 && u.gost === tim1));
         if(!mec) return null;
-        if(mec.goloviD === mec.goloviG) return "Nerešeno (Unesite produžetke/penale)";
+        if(mec.goloviD === mec.goloviG) return "Nerešeno";
         if(mec.domacin === tim1) {
             return mec.goloviD > mec.goloviG ? tim1 : tim2;
         } else {
@@ -978,113 +969,86 @@
         const pA = poredakPoGrupama.A || [];
         const pB = poredakPoGrupama.B || [];
 
-        const tA1 = pA[0] || "A1"; const tA2 = pA[1] || "A2"; const tA3 = pA[2] || "A3"; const tA4 = pA[3] || "A4"; const tA5 = pA[4] || "A5";
-        const tB1 = pB[0] || "B1"; const tB2 = pB[1] || "B2"; const tB3 = pB[2] || "B3"; const tB4 = pB[3] || "B4"; const tB5 = pB[4] || "B5";
+        const tA1 = pA[0] || "A1"; const tA2 = pA[1] || "A2"; const tA3 = pA[2] || "A3"; const tA4 = pA[3] || "A4";
+        const tB1 = pB[0] || "B1"; const tB2 = pB[1] || "B2"; const tB3 = pB[2] || "B3"; const tB4 = pB[3] || "B4";
 
-        // 1. BARAŽ
-        const barazParovi = [
-            { id: "b1", l: "A2 – B5", t1: tA2, t2: tB5 },
-            { id: "b2", l: "A3 – B4", t1: tA3, t2: tB4 },
-            { id: "b3", l: "B2 – A5", t1: tB2, t2: tA5 },
-            { id: "b4", l: "B3 – A4", t1: tB3, t2: tA4 }
-        ];
-
-        let htmlBaraz = "";
-        barazParovi.forEach(p => {
-            const postoji = proveriDaLiMecPostoji(p.t1, p.t2);
-            const pobednik = nadjiPobednikaMeca(p.t1, p.t2);
-            htmlBaraz += `<div class="knockout-match-row">
-                <div><b>${p.l}:</b> ${p.t1} vs ${p.t2} ${pobednik ? ` -> 🎉 <b>Pobednik: ${pobednik}</b>` : ''}</div>
-                <button class="btn-generate-match" ${postoji || p.t1.startsWith("A") || p.t2.startsWith("B") ? 'disabled' : ''} onclick="kreirajMecUNokautu('${p.t1}', '${p.t2}')">${postoji ? 'Odigrano' : 'Generiši meč'}</button>
-            </div>`;
-        });
-        document.getElementById('baraz-matches-container').innerHTML = htmlBaraz;
-
-        // Pobednici Baraža
-        const pobB1 = nadjiPobednikaMeca(tA2, tB5);
-        const pobB2 = nadjiPobednikaMeca(tA3, tB4);
-        const pobB3 = nadjiPobednikaMeca(tB2, tA5);
-        const pobB4 = nadjiPobednikaMeca(tB3, tA4);
-
-        // 2. ČETVRTFINALE
+        // 1/4 FINALE PAROVI
         const cfParovi = [
-            { id: "cf1", l: "A1 – pobednik (B3 – A4)", t1: tA1, t2: pobB4, t2Label: `Pobednik (B3-A4)` },
-            { id: "cf2", l: "B1 – pobednik (A3 – B4)", t1: tB1, t2: pobB2, t2Label: `Pobednik (A3-B4)` },
-            { id: "cf3", l: "pobednik (A2 – B5) – pobednik (B2 – A5)", t1: pobB1, t2: pobB3, t1Label: `Pobednik (A2-B5)`, t2Label: `Pobednik (B2-A5)` }
+            { id: "cf1", l: "Četvrtfinale 1 (A1 – B4)", t1: tA1, t2: tB4 },
+            { id: "cf2", l: "Četvrtfinale 2 (A2 – B3)", t1: tA2, t2: tB3 },
+            { id: "cf3", l: "Četvrtfinale 3 (B1 – A4)", t1: tB1, t2: tA4 },
+            { id: "cf4", l: "Četvrtfinale 4 (B2 – A3)", t1: tB2, t2: tA3 }
         ];
 
         let htmlCF = "";
         cfParovi.forEach(p => {
-            const t1Ime = p.t1 || p.t1Label;
-            const t2Ime = p.t2 || p.t2Label;
-            const spreman = p.t1 && p.t2;
-            const postoji = spreman ? proveriDaLiMecPostoji(p.t1, p.t2) : false;
-            const pobednik = spreman ? nadjiPobednikaMeca(p.t1, p.t2) : null;
-
+            const postoji = proveriDaLiMecPostoji(p.t1, p.t2);
+            const pobednik = nadjiPobednikaMeca(p.t1, p.t2);
             htmlCF += `<div class="knockout-match-row">
-                <div><b>${p.l}:</b> ${t1Ime} vs ${t2Ime} ${pobednik ? ` -> 🎉 <b>Pobednik: ${pobednik}</b>` : ''}</div>
-                <button class="btn-generate-match" ${!spreman || postoji ? 'disabled' : ''} onclick="kreirajMecUNokautu('${p.t1}', '${p.t2}')">${postoji ? 'Odigrano' : 'Generiši meč'}</button>
+                <div><b>${p.l}:</b> ${p.t1} vs ${p.t2} ${pobednik ? ` -> 🎉 <b>Pobednik: ${pobednik}</b>` : ''}</div>
+                <button class="btn-generate-match" ${postoji || p.t1.startsWith("A") || p.t2.startsWith("B") ? 'disabled' : ''} onclick="kreirajMecUNokautu('${p.t1}', '${p.t2}')">${postoji ? 'Odigrano' : 'Generiši meč'}</button>
             </div>`;
         });
         document.getElementById('cetvrtfinale-matches-container').innerHTML = htmlCF;
 
         // Pobednici Četvrtfinala
-        const pobCF1 = tA1 && pobB4 ? nadjiPobednikaMeca(tA1, pobB4) : null;
-        const pobCF2 = tB1 && pobB2 ? nadjiPobednikaMeca(tB1, pobB2) : null;
-        const pobCF3 = pobB1 && pobB3 ? nadjiPobednikaMeca(pobB1, pobB3) : null;
+        const pobCF1 = nadjiPobednikaMeca(tA1, tB4);
+        const pobCF2 = nadjiPobednikaMeca(tA2, tB3);
+        const pobCF3 = nadjiPobednikaMeca(tB1, tA4);
+        const pobCF4 = nadjiPobednikaMeca(tB2, tA3);
 
-        // Kako imamo 3 meča četvrtfinala jer A1 i B1 idu direktno a drugi parovi formiraju ostale, 
-        // u polufinalu se ukrštaju: Pobednik CF1, Pobednik CF2, Pobednik CF3. 
-        // Da bismo imali 4 tima u polufinalu, po tvojoj strukturi:
-        // Polufinale 1: pobCF1 vs pobCF3
-        // Polufinale 2: pobCF2 vs (Slobodan prolaz ili poraženi sa najboljim skorom). 
-        // Ovde ćemo staviti direktno ukrštanje za Polufinale na osnovu pobednika:
-        const tPF1_1 = pobCF1 || "Pobednik Četvrtfinala 1";
-        const tPF1_2 = pobCF3 || "Pobednik Četvrtfinala 3";
-        const spremanPF1 = pobCF1 && pobCF3;
-        const postojiPF1 = spremanPF1 ? proveriDaLiMecPostoji(pobCF1, pobCF3) : false;
-        const pobPF1 = spremanPF1 ? nadjiPobednikaMeca(pobCF1, pobCF3) : null;
-        
-        // Poraženi iz polufinala
-        let porPF1 = null;
-        if(postojiPF1 && pobPF1) porPF1 = (pobPF1 === pobCF1) ? pobCF3 : pobCF1;
+        // POLUFINALE (Ukrštaju se CF1-CF4 i CF2-CF3)
+        const tPF1_1 = pobCF1 || "Pobednik 1/4 (A1-B4)";
+        const tPF1_2 = pobCF4 || "Pobednik 1/4 (B2-A3)";
+        const tPF2_1 = pobCF2 || "Pobednik 1/4 (A2-B3)";
+        const tPF2_2 = pobCF3 || "Pobednik 1/4 (B1-A4)";
 
-        let htmlPF = `<div class="knockout-match-row">
-            <div><b>Polufinale 1:</b> ${tPF1_1} vs ${tPF1_2} ${pobPF1 ? ` -> 🎉 <b>Pobednik: ${pobPF1}</b>` : ''}</div>
-            <button class="btn-generate-match" ${!spremanPF1 || postojiPF1 ? 'disabled' : ''} onclick="kreirajMecUNokautu('${pobCF1}', '${pobCF3}')">${postojiPF1 ? 'Odigrano' : 'Generiši meč'}</button>
-        </div>
-        <div class="knockout-match-row">
-            <div><b>Polufinale 2 (Direktan prolaz iz CF2):</b> Pobednik Četvrtfinala 2 (<b>${pobCF2 || 'Čeka se meč'}</b>) ide direktno u finale po rasporedu tri četvrtfinala.</div>
-        </div>`;
+        const spremanPF1 = pobCF1 && pobCF4;
+        const spremanPF2 = pobCF2 && pobCF3;
+
+        const postojiPF1 = spremanPF1 ? proveriDaLiMecPostoji(pobCF1, pobCF4) : false;
+        const postojiPF2 = spremanPF2 ? proveriDaLiMecPostoji(pobCF2, pobCF3) : false;
+
+        const pobPF1 = spremanPF1 ? nadjiPobednikaMeca(pobCF1, pobCF4) : null;
+        const pobPF2 = spremanPF2 ? nadjiPobednikaMeca(pobCF2, pobCF3) : null;
+
+        let htmlPF = `
+            <div class="knockout-match-row">
+                <div><b>Polufinale 1:</b> ${tPF1_1} vs ${tPF1_2} ${pobPF1 ? ` -> 🎉 <b>Pobednik: ${pobPF1}</b>` : ''}</div>
+                <button class="btn-generate-match" ${!spremanPF1 || postojiPF1 ? 'disabled' : ''} onclick="kreirajMecUNokautu('${pobCF1}', '${pobCF4}')">${postojiPF1 ? 'Odigrano' : 'Generiši meč'}</button>
+            </div>
+            <div class="knockout-match-row">
+                <div><b>Polufinale 2:</b> ${tPF2_1} vs ${tPF2_2} ${pobPF2 ? ` -> 🎉 <b>Pobednik: ${pobPF2}</b>` : ''}</div>
+                <button class="btn-generate-match" ${!spremanPF2 || postojiPF2 ? 'disabled' : ''} onclick="kreirajMecUNokautu('${pobCF2}', '${pobCF3}')">${postojiPF2 ? 'Odigrano' : 'Generiši meč'}</button>
+            </div>
+        `;
         document.getElementById('polufinale-matches-container').innerHTML = htmlPF;
 
-        // 4. FINALE I MEČ ZA 3. MESTO
-        // U finalu igraju pobednik PF1 i direktan pobednik CF2
+        // FINALE I 3. MESTO
         const tFinale1 = pobPF1 || "Pobednik Polufinala 1";
-        const tFinale2 = pobCF2 || "Pobednik Četvrtfinala 2";
-        const spremanFinale = pobPF1 && pobCF2;
-        const postojiFinale = spremanFinale ? proveriDaLiMecPostoji(pobPF1, pobCF2) : false;
-        const sampion = spremanFinale ? nadjiPobednikaMeca(pobPF1, pobCF2) : null;
+        const tFinale2 = pobPF2 || "Pobednik Polufinala 2";
+        const spremanFinale = pobPF1 && pobPF2;
+        const postojiFinale = spremanFinale ? proveriDaLiMecPostoji(pobPF1, pobPF2) : false;
+        const sampion = spremanFinale ? nadjiPobednikaMeca(pobPF1, pobPF2) : null;
 
         let htmlFinale = `<div class="knockout-match-row" style="border-left: 4px solid gold;">
             <div><b>🥇 FINALE TURNIRA:</b> ${tFinale1} vs ${tFinale2} ${sampion ? ` -> 🏆 <b>ŠAMPION: ${sampion}</b>` : ''}</div>
-            <button class="btn-generate-match" ${!spremanFinale || postojiFinale ? 'disabled' : ''} onclick="kreirajMecUNokautu('${pobPF1}', '${pobCF2}')">${postojiFinale ? 'Odigrano' : 'Generiši meč'}</button>
+            <button class="btn-generate-match" ${!spremanFinale || postojiFinale ? 'disabled' : ''} onclick="kreirajMecUNokautu('${pobPF1}', '${pobPF2}')">${postojiFinale ? 'Odigrano' : 'Generiši meč'}</button>
         </div>`;
 
-        // Meč za 3. mesto: igraju poraženi iz PF1 protiv poraženog iz CF2 (pošto CF2 nema meč polufinala)
-        const mecCF2 = utakmice.find(u => (u.domacin === tB1 && u.gost === pobB2) || (u.domacin === pobB2 && u.gost === tB1));
-        let porCF2 = null;
-        if(mecCF2 && pobCF2) porCF2 = (pobCF2 === tB1) ? pobB2 : tB1;
+        // Poraženi za 3. mesto
+        let porPF1 = null; if(postojiPF1 && pobPF1) porPF1 = (pobPF1 === pobCF1) ? pobCF4 : pobCF1;
+        let porPF2 = null; if(postojiPF2 && pobPF2) porPF2 = (pobPF2 === pobCF2) ? pobCF3 : pobCF2;
 
         const tTreco1 = porPF1 || "Poraženi Polufinala 1";
-        const tTreco2 = porCF2 || "Poraženi Četvrtfinala 2";
-        const spremanTreco = porPF1 && porCF2;
-        const postojiTreco = spremanTreco ? proveriDaLiMecPostoji(porPF1, porCF2) : false;
-        const treceMesto = spremanTreco ? nadjiPobednikaMeca(porPF1, porCF2) : null;
+        const tTreco2 = porPF2 || "Poraženi Polufinala 2";
+        const spremanTreco = porPF1 && porPF2;
+        const postojiTreco = spremanTreco ? proveriDaLiMecPostoji(porPF1, porPF2) : false;
+        const treceMesto = spremanTreco ? nadjiPobednikaMeca(porPF1, porPF2) : null;
 
         htmlFinale += `<div class="knockout-match-row" style="border-left: 4px solid #cd7f32; margin-top: 15px;">
-            <div><b>🥉 Utakmica za 3. mesto:</b> ${tTreco1} vs ${tTreco2} ${treceMesto ? ` -> 🥉 <b>3. Mesto: ${treceMesto}</b>` : ''}</div>
-            <button class="btn-generate-match" ${!spremanTreco || postojiTreco ? 'disabled' : ''} onclick="kreirajMecUNokautu('${porPF1}', '${porCF2}')">${postojiTreco ? 'Odigrano' : 'Generiši meč'}</button>
+            <div><b>🥉 Utakmice za 3. mesto:</b> ${tTreco1} vs ${tTreco2} ${treceMesto ? ` -> 🥉 <b>3. Mesto: ${treceMesto}</b>` : ''}</div>
+            <button class="btn-generate-match" ${!spremanTreco || postojiTreco ? 'disabled' : ''} onclick="kreirajMecUNokautu('${porPF1}', '${porPF2}')">${postojiTreco ? 'Odigrano' : 'Generiši meč'}</button>
         </div>`;
 
         document.getElementById('finale-matches-container').innerHTML = htmlFinale;
