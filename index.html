@@ -616,9 +616,11 @@
             kotizacijeMape = data.kotizacije || {};
             
             ekipe.forEach(ek => {
-                if(!kotizacijeMape[ek]) kotizacijeMape[ek] = { iznos: 15000, placeno: false };
-                if(!infoEkipaMape[ek]) infoEkipaMape[ek] = { telefon: "Nema", grupa: "A" };
-            });
+    if(!kotizacijeMape[ek]) kotizacijeMape[ek] = { iznos: 15000, placeno: false };
+    if(!infoEkipaMape[ek] || !infoEkipaMape[ek].grupa) {
+        infoEkipaMape[ek] = { telefon: infoEkipaMape[ek]?.telefon || "Bez telefona", grupa: "A" };
+    }
+});
 
             osveziSveEkrane();
         } catch (error) {
