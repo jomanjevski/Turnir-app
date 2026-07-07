@@ -328,10 +328,6 @@
                                 <option value="B">Grupa B</option>
                             </select>
                         </div>
-                        <div class="form-group">
-                            <label for="iznos-kotizacije">Visina kotizacije za ovaj tim (RSD):</label>
-                            <input type="number" id="iznos-kotizacije" value="15000" min="0" required>
-                        </div>
                         <button type="submit" class="btn-submit">Dodaj Ekipu</button>
                     </form>
                 </div>
@@ -609,7 +605,8 @@
             ekipe.forEach(ek => {
                 if(!kotizacijeMape[ek]) kotizacijeMape[ek] = { iznos: 15000, placeno: false };
                 if(!infoEkipaMape[ek] || !infoEkipaMape[ek].grupa) {
-                    infoEkipaMape[ek] = { telefon: infoEkipaMape[ek]?.telefon || "Bez telefona", grupa: "A" };
+                    infoEkipaMape[ek] = { telefon: infoEkipaMape[ek]?.telefon || "Bez telefona", ...infoEkipaMape[ek] };
+                    if(!infoEkipaMape[ek].grupa) infoEkipaMape[ek].grupa = "A";
                 }
             });
 
@@ -669,7 +666,7 @@
         const naziv = document.getElementById('naziv-ekipe').value.trim();
         const telefon = document.getElementById('telefon-ekipe').value.trim();
         const grupa = document.getElementById('grupa-ekipe').value;
-        const iznos = parseFloat(document.getElementById('iznos-kotizacije').value) || 0;
+        const iznos = 15000; // Fiksna vrednost kotizacije automatski
         
         if(!naziv) return;
         if(ekipe.some(ek => ek.toLowerCase() === naziv.toLowerCase())) { alert('Ekipa već postoji!'); return; }
@@ -720,8 +717,8 @@
         document.getElementById('modal-ime-ekipe').textContent = "Profil: " + naziv;
         
         const inf = infoEkipaMape[naziv] || { telefon: "Bez telefona", grupa: "A" };
-        document.getElementById('modal-edit-grupa').value = inf.grupa;
-        document.getElementById('modal-edit-telefon').value = inf.telefon;
+        document.getElementById('modal-edit-grupa').value = inf.grupa || "A";
+        document.getElementById('modal-edit-telefon').value = inf.telefon || "Bez telefona";
         
         renderujStatusKotizacijeUModalu(naziv);
         document.getElementById('profil-modal').style.display = 'flex';
@@ -731,7 +728,7 @@
         roster.forEach(ig => goloviBrojac[ig] = 0);
         
         utakmice.forEach(u => {
-            if(u.domacin === naziv || u.gost === naziv) {
+            if(u.domacin === presidential || u.domacin === naziv || u.gost === naziv) {
                 ou++; let isDomacin = (u.domacin === naziv);
                 let mojeG = isDomacin ? u.goloviD : u.goloviG; let tudjeG = isDomacin ? u.goloviG : u.goloviD;
                 dg += mojeG; pg += tudjeG;
@@ -997,7 +994,7 @@
         const pobCF3 = nadjiPobednikaMeca(tB1, tA4);
         const pobCF4 = nadjiPobednikaMeca(tB2, tA3);
 
-        // POLUFINALE (Ukrštaju se CF1-CF4 i CF2-CF3)
+        // POLUFINALE
         const tPF1_1 = pobCF1 || "Pobednik 1/4 (A1-B4)";
         const tPF1_2 = pobCF4 || "Pobednik 1/4 (B2-A3)";
         const tPF2_1 = pobCF2 || "Pobednik 1/4 (A2-B3)";
