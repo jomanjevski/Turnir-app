@@ -358,9 +358,10 @@
         </div>
     </div>
 
+    <!-- HRONOLOŠKI RASPORED PO DANIMA -->
     <div id="raspored-tab" class="tab-content">
         <h2>Hronološki Raspored Utakmica po Danima</h2>
-        <p style="font-size: 14px; color: #666; margin-bottom: 20px;">Igraju se tačno 3 utakmice dnevno. Turnir otvara ekipa <b>Kiseli krastavci</b>. Algoritam sprečava duple mečeve istog dana i smanjuje igranje dan za danom.</p>
+        <p style="font-size: 14px; color: #666; margin-bottom: 20px;">Igraju se tačno 3 utakmice dnevno. Turnir otvara ekipa <b>Kiseli krastavci</b>. Nijedna ekipa ne igra dvaput isto veče, a grupe su balansirane (2 iz jedne, 1 iz druge).</p>
         
         <button class="btn-submit" onclick="KREIRAJ_I_SACUVAJ_RASPORED()" style="margin-bottom: 20px; background-color: var(--green-success);">
             🔄 Generiši i Zaključaj Novi Raspored (Trajno)
@@ -489,6 +490,7 @@
         <div class="kasa-grid" id="kasa-zarada-grid"></div>
     </div>
 
+    <!-- DODATNI PRIHODI TAB -->
     <div id="dodatni-prihodi-tab" class="tab-content">
         <h2>Evidencija dodatnih prihoda (Sponzorstva, Donacije...)</h2>
         <form id="dodatni-prihodi-form" onsubmit="dodajDodatniPrihod(event)">
@@ -562,6 +564,7 @@
     </div>
 </div>
 
+<!-- MODAL PROFIL EKIPE -->
 <div id="profil-modal" class="modal-profil" onclick="zatvoriProfil(event)">
     <div class="modal-content" onclick="event.stopPropagation()">
         <span class="close-modal" onclick="document.getElementById('profil-modal').style.display='none'">&times;</span>
@@ -639,7 +642,7 @@
     let sviTroskovi = [];
     let kotizacijeMape = {}; 
     let trenutnoOtvorenaEkipa = "";
-    let generisanRaspored = []; // Sačuvani fiksni raspored mečeva
+    let generisanRaspored = []; 
     
     let poredakPoGrupama = { A: [], B: [] };
 
@@ -661,7 +664,7 @@
             dodatniPrihodi = data.dodatniPrihodi || [];
             sviTroskovi = data.troskovi || [];
             kotizacijeMape = data.kotizacije || {};
-            generisanRaspored = data.generisanRaspored || []; // Povlačenje fiksnog rasporeda iz baze
+            generisanRaspored = data.generisanRaspored || []; 
             
             ekipe.forEach(ek => {
                 if(!kotizacijeMape[ek]) kotizacijeMape[ek] = { iznos: 15000, placeno: false };
@@ -691,7 +694,7 @@
             dodatniPrihodi: dodatniPrihodi,
             troskovi: sviTroskovi,
             kotizacije: kotizacijeMape,
-            generisanRaspored: generisanRaspored // Slanje i upisivanje rasporeda u bazu
+            generisanRaspored: generisanRaspored 
         };
         try {
             await fetch(GOOGLE_API_URL, {
@@ -951,8 +954,6 @@
         const selGost = document.getElementById('tim-gost');
         
         let optHtml = `<option value="">-- Izaberi --</option>`;
-        
-        // Sortiranje ekipa po azbučnom redu radi lakšeg snalaženja
         const sortiraneEkipe = [...ekipe].sort((a,b) => a.localeCompare(b));
         
         sortiraneEkipe.forEach(ek => {
@@ -1055,7 +1056,7 @@
             const tbody = document.getElementById(`tabela-grupa-${grIme}-body`);
             lista.forEach((tim, index) => {
                 const tr = document.createElement('tr');
-                if(index < 4) tr.style.backgroundColor = "#eaf6ff"; // Top 4 prolaze dalje
+                if(index < 4) tr.style.backgroundColor = "#eaf6ff"; 
                 const grRazlika = tim.dg - tim.pg;
                 const znak = grRazlika > 0 ? "+" : "";
                 
@@ -1075,7 +1076,7 @@
         });
     }
 
-    // Algoritam generisanja i čuvanja rasporeda
+    // RIGOROZNII ALGORITAM ZA KREIRANJE FIKSNOG RASPOREDA
     async function KREIRAJ_I_SACUVAJ_RASPORED() {
         if(ekipe.length < 2) {
             alert("Morate dodati ekipe pre generisanja rasporeda!");
@@ -1091,6 +1092,7 @@
             mapePoGrupama[g].push(ek);
         });
 
+        // Generiši sve moguće kombinacije unutar grupa
         ['A', 'B'].forEach(g => {
             let lista = mapePoGrupama[g];
             for (let i = 0; i < lista.length; i++) {
@@ -1102,7 +1104,7 @@
 
         if (sviParovi.length === 0) return;
 
-        // Mešanje parova
+        // Mešanje parova na početku
         for (let i = sviParovi.length - 1; i > 0; i--) {
             const j = Math.floor(Math.random() * (i + 1));
             [sviParovi[i], sviParovi[j]] = [sviParovi[j], sviParovi[i]];
@@ -1111,56 +1113,66 @@
         let preostaliMecevi = [...sviParovi];
         let rasporedDani = [];
         let trenutniDanIndex = 1;
-
         let koJeIgraoPrethodnogDana = new Set();
-        let prvaUtakmicaFiksirana = false;
+
+        // Proveri da li postoje "Kiseli krastavci" za fiksno otvaranje
         let indexKrastavaca = preostaliMecevi.findIndex(m => 
             m.domacin.toLowerCase() === "kiseli krastavci" || m.gost.toLowerCase() === "kiseli krastavci"
         );
 
-        let meceviZaDan1 = [];
-        let koIgraDanas = new Set();
+        // Određivanje inicijalne šeme grupa po danima kako bismo izbegli 3 meča iz iste grupe (alternacija 2A+1B pa 2B+1A)
+        let zahtevanaGrupaZaDan = (dan) => {
+            return (dan % 2 === 1) ? { primarna: 'A', sekundarna: 'B' } : { primarna: 'B', sekundarna: 'A' };
+        };
 
-        if (indexKrastavaca !== -1) {
-            let prvaTekma = preostaliMecevi.splice(indexKrastavaca, 1)[0];
-            meceviZaDan1.push(prvaTekma);
-            koIgraDanas.add(prvaTekma.domacin);
-            koIgraDanas.add(prvaTekma.gost);
-            prvaUtakmicaFiksirana = true;
-        }
-
-        while (preostaliMecevi.length > 0 || meceviZaDan1.length > 0) {
+        while (preostaliMecevi.length > 0) {
             let dnevniMecevi = [];
-            koIgraDanas = new Set();
+            let koIgraDanas = new Set();
+            let strukturaGrupa = zahtevanaGrupaZaDan(trenutniDanIndex);
+            
+            let brojIzPrimarne = 0;
+            let brojIzSekundarne = 0;
 
-            if (trenutniDanIndex === 1 && prvaUtakmicaFiksirana) {
-                dnevniMecevi = [...meceviZaDan1];
-                meceviZaDan1 = [];
-                dnevniMecevi.forEach(m => {
-                    koIgraDanas.add(m.domacin);
-                    koIgraDanas.add(m.gost);
-                });
+            // Ako je prvi dan i imamo Krastavce, ubaci taj meč odmah kao prvi
+            if (trenutniDanIndex === 1 && indexKrastavaca !== -1) {
+                let prvaTekma = preostaliMecevi.splice(indexKrastavaca, 1)[0];
+                dnevniMecevi.push(prvaTekma);
+                koIgraDanas.add(prvaTekma.domacin);
+                koIgraDanas.add(prvaTekma.gost);
+                if (prvaTekma.grupa === strukturaGrupa.primarna) brojIzPrimarne++;
+                else brojIzSekundarne++;
+                indexKrastavaca = -1; // Resetuj tracker
             }
 
-            while (dnevniMecevi.length < 3 && preostaliMecevi.length > 0) {
+            // Pokušaj sastavljanja 3 meča za trenutni dan
+            let maxPokusajaZaDan = 200; // Bektrek osiguranje u slučaju blokade
+            while (dnevniMecevi.length < 3 && preostaliMecevi.length > 0 && maxPokusajaZaDan > 0) {
+                maxPokusajaZaDan--;
                 let najboljiMecIndex = -1;
                 let najmanjaKazna = Infinity;
 
                 for (let i = 0; i < preostaliMecevi.length; i++) {
                     let mec = preostaliMecevi[i];
+                    
+                    // STRIKTNO UKLANJANJE: Ekipa NE SME da igra dva meča isto veče!
+                    if (koIgraDanas.has(mec.domacin) || koIgraDanas.has(mec.gost)) {
+                        continue; 
+                    }
+
+                    // STRIKTNO UKLANJANJE: Provera balansa grupa (Maksimalno 2 iz iste grupe po danu)
+                    if (mec.grupa === strukturaGrupa.primarna && brojIzPrimarne >= 2) continue;
+                    if (mec.grupa === strukturaGrupa.sekundarna && brojIzSekundarne >= 1) continue;
+
+                    // Evaluacija kazne za igranje dan za danom (gleda se prethodni dan)
                     let trenutnaKazna = 0;
-
-                    if (koIgraDanas.has(mec.domacin)) trenutnaKazna += 10000;
-                    if (koIgraDanas.has(mec.gost)) Mills_penalty = 10000;
-
-                    if (koJeIgraoPrethodnogDana.has(mec.domacin)) trenutnaKazna += 50;
-                    if (koJeIgraoPrethodnogDana.has(mec.gost)) trenutnaKazna += 50;
+                    if (koJeIgraoPrethodnogDana.has(mec.domacin)) trenutnaKazna += 100;
+                    if (koJeIgraoPrethodnogDana.has(mec.gost)) trenutnaKazna += 100;
 
                     if (trenutnaKazna < najmanjaKazna) {
                         najmanjaKazna = trenutnaKazna;
                         najboljiMecIndex = i;
                     }
-                    if (trenutnaKazna === 0) break;
+                    if (trenutnaKazna === 0) break; // Savršen meč pronađen
                 }
 
                 if (najboljiMecIndex !== -1) {
@@ -1168,20 +1180,40 @@
                     dnevniMecevi.push(izabraniMec);
                     koIgraDanas.add(izabraniMec.domacin);
                     koIgraDanas.add(izabraniMec.gost);
+                    if (izabraniMec.grupa === strukturaGrupa.primarna) brojIzPrimarne++;
+                    else brojIzSekundarne++;
                 } else {
-                    break;
+                    // Ako nema meča koji zadovoljava balans grupe, olabavi pravilo balansa grupa za taj preostali meč
+                    let zamenskiIndex = preostaliMecevi.findIndex(m => !koIgraDanas.has(m.domacin) && !koIgraDanas.has(m.gost));
+                    if (zamenskiIndex !== -1) {
+                        let zamenskiMec = preostaliMecevi.splice(zamenskiIndex, 1)[0];
+                        dnevniMecevi.push(zamenskiMec);
+                        koIgraDanas.add(zamenskiMec.domacin);
+                        koIgraDanas.add(zamenskiMec.gost);
+                    } else {
+                        break; 
+                    }
                 }
             }
 
-            rasporedDani.push({ dan: trenutniDanIndex, mecevi: dnevniMecevi });
-            koJeIgraoPrethodnogDana = new Set(koIgraDanas);
-            trenutniDanIndex++;
+            // Ako je pri kraju turnira ostalo manje mečeva, prihvati ih iako ih nema tačno 3
+            if(dnevniMecevi.length > 0) {
+                rasporedDani.push({ dan: trenutniDanIndex, mecevi: dnevniMecevi });
+                koJeIgraoPrethodnogDana = new Set(koIgraDanas);
+                trenutniDanIndex++;
+            } else {
+                // Ako upadnemo u potpunu blokadu sa preostalim mečevima, izbaci ih silom
+                if(preostaliMecevi.length > 0) {
+                    rasporedDani.push({ dan: trenutniDanIndex, mecevi: [preostaliMecevi.shift()] });
+                    trenutniDanIndex++;
+                }
+            }
         }
 
         generisanRaspored = rasporedDani;
         renderujRasporedIzMemorije();
         await sacuvajUCloud();
-        alert("Raspored je uspešno generisan i zaključan u bazi!");
+        alert("Raspored je uspešno generisan i zaključan u bazi sa unetim uslovima!");
     }
 
     function generisiRasporedPoDanima() {
@@ -1231,7 +1263,6 @@
             return;
         }
         
-        // Najnovije utakmice idu na vrh spiska
         const obrnuto = [...utakmice].reverse();
         
         obrnuto.forEach(u => {
@@ -1288,7 +1319,6 @@
                 if(goloviMape[s] !== undefined) goloviMape[s]++;
                 else {
                     goloviMape[s] = 1;
-                    // Ako slučajno ekipa nije mapirana, probaj naći
                     if(!ekipaMapeIgraca[s]) {
                         if(u.strelciDomacin && u.strelciDomacin.includes(s)) ekipaMapeIgraca[s] = u.domacin;
                         else ekipaMapeIgraca[s] = u.gost;
@@ -1420,7 +1450,6 @@
             return;
         }
         
-        // Sortiranje po datumu
         const sortirano = [...pazarDani].sort((a,b) => b.datum.localeCompare(a.datum));
         
         sortirano.forEach(d => {
@@ -1619,7 +1648,7 @@
             { oznaka: "QF1", dom: topA[0], gos: topB[3], opis: "A1 vs B4" },
             { oznaka: "QF2", dom: topB[0], gos: topA[3], opis: "B1 vs A4" },
             { oznaka: "QF3", dom: topA[1], gos: topB[2], opis: "A2 vs B3" },
-            { oznaka: "QF4", dom: topB[1], gos: topA[2], opis: "B2 vs A2" }
+            { oznaka: "QF4", dom: topB[1], gos: topA[2], opis: "B2 vs A3" }
         ];
         
         paroviStruktura.forEach(p => {
@@ -1748,7 +1777,6 @@
         });
     }
 
-    // Automatsko pokretanje i sinhronizacija pri učitavanju stranice
     window.onload = function() {
         ucitajIzClouda();
     };
