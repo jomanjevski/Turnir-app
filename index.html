@@ -312,6 +312,7 @@
         <button class="tab-btn" onclick="switchTab(event, 'nokaut-tab')">Nokaut Faza</button>
         <button class="tab-btn" onclick="switchTab(event, 'strelci-tab')">Lista Strelaca</button>
         <button class="tab-btn" onclick="switchTab(event, 'kasa')">Kasa (Zarada/Pazar)</button>
+        <button class="tab-btn" onclick="switchTab(event, 'dodatni-prihodi-tab')">Dodatni Prihodi</button>
         <button class="tab-btn" onclick="switchTab(event, 'troskovi')">Troškovi (Rashodi)</button>
     </div>
 
@@ -484,6 +485,43 @@
         <div class="kasa-grid" id="kasa-zarada-grid"></div>
     </div>
 
+    <!-- DODATNI PRIHODI TAB -->
+    <div id="dodatni-prihodi-tab" class="tab-content">
+        <h2>Evidencija dodatnih prihoda (Sponzorstva, Donacije...)</h2>
+        <form id="dodatni-prihodi-form" onsubmit="dodajDodatniPrihod(event)">
+            <div class="form-panel">
+                <div class="form-row-inline">
+                    <div>
+                        <label for="prihod-datum">Datum:</label>
+                        <input type="date" id="prihod-datum" required>
+                    </div>
+                    <div>
+                        <label for="prihod-izvor">Izvor novca:</label>
+                        <input type="text" id="prihod-izvor" placeholder="Npr. Sponzor MaxBet, Donacija opštine..." required>
+                    </div>
+                    <div>
+                        <label for="prihod-iznos">Iznos prihoda (RSD):</label>
+                        <input type="number" id="prihod-iznos" min="1" placeholder="Npr. 10000" required>
+                    </div>
+                    <div>
+                        <button type="submit" class="btn-submit">Upiši Prihod</button>
+                    </div>
+                </div>
+            </div>
+        </form>
+        <table class="excel-table">
+            <thead>
+                <tr>
+                    <th>Datum</th>
+                    <th>Izvor novca</th>
+                    <th>Iznos prihoda</th>
+                    <th style="width: 80px;">Ukloni</th>
+                </tr>
+            </thead>
+            <tbody id="dodatni-prihodi-tabela-body"></tbody>
+        </table>
+    </div>
+
     <div id="troskovi" class="tab-content">
         <h2>Evidencija rashoda turnira</h2>
         <form id="trosak-form" onsubmit="dodajTrosak(event)">
@@ -595,6 +633,7 @@
     let utakmice = [];
     let igraciPoEkipama = {}; 
     let pazarDani = [];
+    let dodatniPrihodi = [];
     let sviTroskovi = [];
     let kotizacijeMape = {}; 
     let trenutnoOtvorenaEkipa = "";
@@ -603,6 +642,7 @@
 
     const danasnjiDatum = new Date().toISOString().split('T')[0];
     if(document.getElementById('pazar-datum')) document.getElementById('pazar-datum').value = danasnjiDatum;
+    if(document.getElementById('prihod-datum')) document.getElementById('prihod-datum').value = danasnjiDatum;
     if(document.getElementById('trosak-datum')) document.getElementById('trosak-datum').value = danasnjiDatum;
 
     async function ucitajIzClouda() {
@@ -615,6 +655,7 @@
             utakmice = data.utakmice || [];
             igraciPoEkipama = data.igraci || {};
             pazarDani = data.pazar || [];
+            dodatniPrihodi = data.dodatniPrihodi || [];
             sviTroskovi = data.troskovi || [];
             kotizacijeMape = data.kotizacije || {};
             
@@ -643,6 +684,7 @@
             utakmice: utakmice,
             igraci: igraciPoEkipama,
             pazar: pazarDani,
+            dodatniPrihodi: dodatniPrihodi,
             troskovi: sviTroskovi,
             kotizacije: kotizacijeMape
         };
@@ -665,6 +707,7 @@
         generisiRasporedPoDanima();
         renderujZlatnuKopacku();
         renderujPazareKase();
+        renderujDodatnePrihode();
         renderujTroskoveRashode();
         izracunajGlavniFinansijskiBilans();
         renderujNokautFazu();
@@ -852,7 +895,7 @@
             ekipe.forEach(ek => {
                 const tr = document.createElement('tr');
                 const kInfo = kotizacijeMape[ek] || { iznos: 15000, placeno: false };
-                const inf = infoEkipaMape[ek] || { telefon: "Bez telefona", grupa: "A" };
+                const inf = infoEkipaMape[ek] || { telefon: "Bez telefona", pointer: "A" };
                 const badgeKlasa = kInfo.placeno ? 'kotizacija-placeno' : 'kotizacija-ceka';
                 const badgeTekst = kInfo.placeno ? `✔ Plaćeno (${kInfo.iznos})` : `❌ Čeka (${kInfo.iznos})`;
                 tr.innerHTML = `<td><a class="link-ekipa" onclick="otvoriProfil('${ek}')"><strong>${ek}</strong></a><br><small style="color:#666;">📞 ${inf.telefon}</small></td><td style="text-align:center;"><span class="badge-grupa">Grupa ${inf.grupa}</span></td><td style="text-align:center;"><button class="badge-kotizacija ${badgeKlasa}" onclick="promeniStatusKotizacije('${ek}')">${badgeTekst}</button></td><td style="text-align:center;"><button class="delete-btn" onclick="obrisiEkipu('${ek}')">X</button></td>`;
@@ -961,7 +1004,7 @@
         });
     }
 
-    // --- PAMETNI ALGORITAM ZA RASPORED: SPRREČAVA DUPLIRANJE I UZASTOPNE DANE ---
+    // --- PAMETNI ALGORITAM ZA RASPORED ---
     function generisiRasporedPoDanima() {
         const kontejner = document.getElementById('hronoloski-raspored-kontejner');
         if (!kontejner) return;
@@ -989,7 +1032,6 @@
             return;
         }
 
-        // 1. Inicijalni nasumični špil
         for (let i = sviParovi.length - 1; i > 0; i--) {
             const j = Math.floor(Math.random() * (i + 1));
             [sviParovi[i], sviParovi[j]] = [sviParovi[j], sviParovi[i]];
@@ -999,10 +1041,7 @@
         let rasporedDani = [];
         let trenutniDanIndex = 1;
 
-        // Strukture za praćenje istorije igranja
         let koJeIgraoPrethodnogDana = new Set();
-
-        // Fiksirano otvaranje za Kisele krastavce
         let prvaUtakmicaFiksirana = false;
         let indexKrastavaca = preostaliMecevi.findIndex(m => 
             m.domacin.toLowerCase() === "kiseli krastavci" || m.gost.toLowerCase() === "kiseli krastavci"
@@ -1023,7 +1062,6 @@
             let dnevniMecevi = [];
             koIgraDanas = new Set();
 
-            // Ako je Dan 1, povuci fiksirano otvaranje
             if (trenutniDanIndex === 1 && prvaUtakmicaFiksirana) {
                 dnevniMecevi = [...meceviZaDan1];
                 meceviZaDan1 = [];
@@ -1033,31 +1071,24 @@
                 });
             }
 
-            // Popunjavamo dan do maksimalno 3 meča (ili manje ako ponestane utakmica na celom turniru)
             while (dnevniMecevi.length < 3 && preostaliMecevi.length > 0) {
                 let najboljiMecIndex = -1;
                 let najmanjaKazna = Infinity;
 
-                // Evaluacija svakog preostalog meča i dodela kaznenih poena po prioritetima restrikcija
                 for (let i = 0; i < preostaliMecevi.length; i++) {
                     let mec = preostaliMecevi[i];
                     let trenutnaKazna = 0;
 
-                    // RESTRIKCIJA 1: Da li tim igra dvaput u istom danu? (Ekstremna kazna, ne sme osim ako nema izbora)
                     if (koIgraDanas.has(mec.domacin)) trenutnaKazna += 10000;
                     if (koIgraDanas.has(mec.gost)) trenutnaKazna += 10000;
 
-                    // RESTRIKCIJA 2: Da li je tim igrao juče? (Srednja kazna, pokušaj da izbegneš)
                     if (koJeIgraoPrethodnogDana.has(mec.domacin)) trenutnaKazna += 50;
                     if (koJeIgraoPrethodnogDana.has(mec.gost)) trenutnaKazna += 50;
 
-                    // Ako nađemo meč sa manje penala, biramo njega
                     if (trenutnaKazna < najmanjaKazna) {
                         najmanjaKazna = trenutnaKazna;
                         najboljiMecIndex = i;
                     }
-                    
-                    // Mala optimizacija da prekine petlju ako imamo savršen meč (0 kaznenih poena)
                     if (trenutnaKazna === 0) break;
                 }
 
@@ -1071,13 +1102,11 @@
                 }
             }
 
-            // Sačuvaj mečeve za tekući dan i ažuriraj istoriju za sutrašnji dan
             rasporedDani.push({ dan: trenutniDanIndex, mecevi: dnevniMecevi });
             koJeIgraoPrethodnogDana = new Set(koIgraDanas);
             trenutniDanIndex++;
         }
 
-        // Renderovanje rasporeda u HTML interfejs
         rasporedDani.forEach(d => {
             const divDan = document.createElement('div');
             divDan.className = 'dan-blok';
@@ -1086,7 +1115,6 @@
             d.mecevi.forEach((m, i) => {
                 const divMec = document.createElement('div');
                 divMec.className = 'sched-match-row';
-                
                 let otvaranjeZnak = (d.dan === 1 && i === 0) ? ' <span style="color:var(--green-success); font-weight:bold;">(🔥 Otvaranje turnira)</span>' : '';
 
                 divMec.innerHTML = `
@@ -1098,7 +1126,6 @@
                 `;
                 divDan.appendChild(divMec);
             });
-
             kontejner.appendChild(divDan);
         });
     }
@@ -1163,6 +1190,33 @@
         });
     }
 
+    // --- LOGIKA ZA DODATNE PRIHODE ---
+    async function dodajDodatniPrihod(e) {
+        e.preventDefault();
+        const datum = document.getElementById('prihod-datum').value;
+        const izvor = document.getElementById('prihod-izvor').value.trim();
+        const iznos = parseInt(document.getElementById('prihod-iznos').value) || 0;
+        if(!datum || !izvor || iznos <= 0) return;
+        dodatniPrihodi.push({ id: Date.now(), datum, izvor, iznos });
+        document.getElementById('prihod-izvor').value = '';
+        document.getElementById('prihod-iznos').value = '';
+        osveziSveEkrane(); await sacuvajUCloud();
+    }
+
+    async function obrisiDodatniPrihod(id) {
+        if(confirm('Obriši ovaj dodatni prihod?')) { dodatniPrihodi = dodatniPrihodi.filter(p => p.id !== id); osveziSveEkrane(); await sacuvajUCloud(); }
+    }
+
+    function renderujDodatnePrihode() {
+        const tbody = document.getElementById('dodatni-prihodi-tabela-body'); if(!tbody) return; tbody.innerHTML = '';
+        if(dodatniPrihodi.length === 0) { tbody.innerHTML = '<tr><td colspan="4" style="text-align:center; color:#888;">Nema upisanih dodatnih prihoda.</td></tr>'; return; }
+        dodatniPrihodi.forEach(p => {
+            const tr = document.createElement('tr');
+            tr.innerHTML = `<td>${p.datum}</td><td><strong>${p.izvor}</strong></td><td style="color:var(--green-success); font-weight:bold;">+${p.iznos.toLocaleString()} RSD</td><td><button class="delete-btn" onclick="obrisiDodatniPrihod(${p.id})">X</button></td>`;
+            tbody.appendChild(tr);
+        });
+    }
+
     async function dodajTrosak(e) {
         e.preventDefault();
         const datum = document.getElementById('trosak-datum').value;
@@ -1190,8 +1244,11 @@
     }
 
     function izracunajGlavniFinansijskiBilans() {
-        let ukupnaZarada = 0; pazarDani.forEach(d => ukupnaZarada += d.ukupno);
+        let ukupnaZarada = 0; 
+        pazarDani.forEach(d => ukupnaZarada += d.ukupno);
         Object.values(kotizacijeMape).forEach(k => { if(k.placeno) ukupnaZarada += k.iznos; });
+        dodatniPrihodi.forEach(p => ukupnaZarada += p.iznos); // Uključivanje dodatnih prihoda
+        
         let ukupniTroskovi = 0; sviTroskovi.forEach(t => ukupniTroskovi += t.iznos);
         let cistSaldo = ukupnaZarada - ukupniTroskovi;
         
