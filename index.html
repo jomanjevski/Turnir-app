@@ -254,13 +254,13 @@
         background: #333; color: white; padding: 8px 12px; border-radius: 4px; margin-top: 20px; font-size: 18px;
     }
 
-    .knockout-phase-block, .sched-phase-block {
+    .knockout-phase-block {
         margin-bottom: 30px; background: #fdfdfd; border: 1px solid var(--border-gray); padding: 15px; border-radius: 6px;
     }
-    .knockout-phase-title, .sched-phase-title {
+    .knockout-phase-title {
         font-size: 18px; font-weight: bold; color: var(--dark-blue); border-bottom: 2px solid var(--primary-blue); padding-bottom: 5px; margin-bottom: 15px;
     }
-    .knockout-match-row, .sched-match-row {
+    .knockout-match-row {
         display: flex; align-items: center; justify-content: space-between; background: white; padding: 10px; border: 1px solid #eee; margin-bottom: 8px; border-radius: 4px;
     }
     .btn-generate-match {
@@ -268,10 +268,6 @@
     }
     .btn-generate-match:disabled {
         background-color: #bbb; cursor: not-allowed;
-    }
-
-    .dan-naslov {
-        background: #333; color: #fff; padding: 8px 12px; font-weight: bold; font-size: 16px; margin: 20px 0 10px 0; border-radius: 4px; box-shadow: 0 2px 4px rgba(0,0,0,0.1);
     }
 
     .badge-grupa {
@@ -306,7 +302,6 @@
 
     <div class="tabs">
         <button class="tab-btn active" onclick="switchTab(event, 'ekipe')">Ekipe i Kotizacije</button>
-        <button class="tab-btn" onclick="switchTab(event, 'raspored-tab')">Raspored po Danima (3 meča)</button>
         <button class="tab-btn" onclick="switchTab(event, 'tabela-tab')">Tabela Turnira</button>
         <button class="tab-btn" onclick="switchTab(event, 'utakmice')">Utakmice i Rezultati</button>
         <button class="tab-btn" onclick="switchTab(event, 'nokaut-tab')">Nokaut Faza</button>
@@ -355,20 +350,6 @@
                     <tbody id="lista-ekipa-upravljanje"></tbody>
                 </table>
             </div>
-        </div>
-    </div>
-
-    <!-- HRONOLOŠKI RASPORED PO DANIMA -->
-    <div id="raspored-tab" class="tab-content">
-        <h2>Hronološki Raspored Utakmica po Danima</h2>
-        <p style="font-size: 14px; color: #666; margin-bottom: 20px;">Igraju se tačno 3 utakmice dnevno. Turnir otvara ekipa <b>Kiseli krastavci</b>. Nijedna ekipa ne igra dvaput isto veče, a grupe su balansirane (2 iz jedne, 1 iz druge).</p>
-        
-        <button class="btn-submit" onclick="KREIRAJ_I_SACUVAJ_RASPORED()" style="margin-bottom: 20px; background-color: var(--green-success);">
-            🔄 Generiši i Zaključaj Novi Raspored (Trajno)
-        </button>
-
-        <div class="sched-phase-block">
-            <div id="hronoloski-raspored-kontejner"></div>
         </div>
     </div>
 
@@ -490,7 +471,6 @@
         <div class="kasa-grid" id="kasa-zarada-grid"></div>
     </div>
 
-    <!-- DODATNI PRIHODI TAB -->
     <div id="dodatni-prihodi-tab" class="tab-content">
         <h2>Evidencija dodatnih prihoda (Sponzorstva, Donacije...)</h2>
         <form id="dodatni-prihodi-form" onsubmit="dodajDodatniPrihod(event)">
@@ -564,7 +544,6 @@
     </div>
 </div>
 
-<!-- MODAL PROFIL EKIPE -->
 <div id="profil-modal" class="modal-profil" onclick="zatvoriProfil(event)">
     <div class="modal-content" onclick="event.stopPropagation()">
         <span class="close-modal" onclick="document.getElementById('profil-modal').style.display='none'">&times;</span>
@@ -642,7 +621,6 @@
     let sviTroskovi = [];
     let kotizacijeMape = {}; 
     let trenutnoOtvorenaEkipa = "";
-    let generisanRaspored = []; 
     
     let poredakPoGrupama = { A: [], B: [] };
 
@@ -664,7 +642,6 @@
             dodatniPrihodi = data.dodatniPrihodi || [];
             sviTroskovi = data.troskovi || [];
             kotizacijeMape = data.kotizacije || {};
-            generisanRaspored = data.generisanRaspored || []; 
             
             ekipe.forEach(ek => {
                 if(!kotizacijeMape[ek]) kotizacijeMape[ek] = { iznos: 15000, placeno: false };
@@ -693,8 +670,7 @@
             pazar: pazarDani,
             dodatniPrihodi: dodatniPrihodi,
             troskovi: sviTroskovi,
-            kotizacije: kotizacijeMape,
-            generisanRaspored: generisanRaspored 
+            kotizacije: kotizacijeMape
         };
         try {
             await fetch(GOOGLE_API_URL, {
@@ -712,7 +688,6 @@
 
     function osveziSveEkrane() {
         osveziSportskiDeo();
-        generisiRasporedPoDanima();
         renderujZlatnuKopacku();
         renderujPazareKase();
         renderujDodatnePrihode();
@@ -1076,183 +1051,6 @@
         });
     }
 
-    // RIGOROZNII ALGORITAM ZA KREIRANJE FIKSNOG RASPOREDA
-    async function KREIRAJ_I_SACUVAJ_RASPORED() {
-        if(ekipe.length < 2) {
-            alert("Morate dodati ekipe pre generisanja rasporeda!");
-            return;
-        }
-        if(!confirm("Da li ste sigurni da želite da generišete NOVI raspored? Ovo će prepisati stari raspored.")) return;
-
-        let sviParovi = [];
-        let mapePoGrupama = { A: [], B: [] };
-
-        ekipe.forEach(ek => {
-            const g = infoEkipaMape[ek]?.grupa || "A";
-            mapePoGrupama[g].push(ek);
-        });
-
-        // Generiši sve moguće kombinacije unutar grupa
-        ['A', 'B'].forEach(g => {
-            let lista = mapePoGrupama[g];
-            for (let i = 0; i < lista.length; i++) {
-                for (let j = i + 1; j < lista.length; j++) {
-                    sviParovi.push({ domacin: lista[i], gost: lista[j], grupa: g });
-                }
-            }
-        });
-
-        if (sviParovi.length === 0) return;
-
-        // Mešanje parova na početku
-        for (let i = sviParovi.length - 1; i > 0; i--) {
-            const j = Math.floor(Math.random() * (i + 1));
-            [sviParovi[i], sviParovi[j]] = [sviParovi[j], sviParovi[i]];
-        }
-
-        let preostaliMecevi = [...sviParovi];
-        let rasporedDani = [];
-        let trenutniDanIndex = 1;
-        let koJeIgraoPrethodnogDana = new Set();
-
-        // Proveri da li postoje "Kiseli krastavci" za fiksno otvaranje
-        let indexKrastavaca = preostaliMecevi.findIndex(m => 
-            m.domacin.toLowerCase() === "kiseli krastavci" || m.gost.toLowerCase() === "kiseli krastavci"
-        );
-
-        // Određivanje inicijalne šeme grupa po danima kako bismo izbegli 3 meča iz iste grupe (alternacija 2A+1B pa 2B+1A)
-        let zahtevanaGrupaZaDan = (dan) => {
-            return (dan % 2 === 1) ? { primarna: 'A', sekundarna: 'B' } : { primarna: 'B', sekundarna: 'A' };
-        };
-
-        while (preostaliMecevi.length > 0) {
-            let dnevniMecevi = [];
-            let koIgraDanas = new Set();
-            let strukturaGrupa = zahtevanaGrupaZaDan(trenutniDanIndex);
-            
-            let brojIzPrimarne = 0;
-            let brojIzSekundarne = 0;
-
-            // Ako je prvi dan i imamo Krastavce, ubaci taj meč odmah kao prvi
-            if (trenutniDanIndex === 1 && indexKrastavaca !== -1) {
-                let prvaTekma = preostaliMecevi.splice(indexKrastavaca, 1)[0];
-                dnevniMecevi.push(prvaTekma);
-                koIgraDanas.add(prvaTekma.domacin);
-                koIgraDanas.add(prvaTekma.gost);
-                if (prvaTekma.grupa === strukturaGrupa.primarna) brojIzPrimarne++;
-                else brojIzSekundarne++;
-                indexKrastavaca = -1; // Resetuj tracker
-            }
-
-            // Pokušaj sastavljanja 3 meča za trenutni dan
-            let maxPokusajaZaDan = 200; // Bektrek osiguranje u slučaju blokade
-            while (dnevniMecevi.length < 3 && preostaliMecevi.length > 0 && maxPokusajaZaDan > 0) {
-                maxPokusajaZaDan--;
-                let najboljiMecIndex = -1;
-                let najmanjaKazna = Infinity;
-
-                for (let i = 0; i < preostaliMecevi.length; i++) {
-                    let mec = preostaliMecevi[i];
-                    
-                    // STRIKTNO UKLANJANJE: Ekipa NE SME da igra dva meča isto veče!
-                    if (koIgraDanas.has(mec.domacin) || koIgraDanas.has(mec.gost)) {
-                        continue; 
-                    }
-
-                    // STRIKTNO UKLANJANJE: Provera balansa grupa (Maksimalno 2 iz iste grupe po danu)
-                    if (mec.grupa === strukturaGrupa.primarna && brojIzPrimarne >= 2) continue;
-                    if (mec.grupa === strukturaGrupa.sekundarna && brojIzSekundarne >= 1) continue;
-
-                    // Evaluacija kazne za igranje dan za danom (gleda se prethodni dan)
-                    let trenutnaKazna = 0;
-                    if (koJeIgraoPrethodnogDana.has(mec.domacin)) trenutnaKazna += 100;
-                    if (koJeIgraoPrethodnogDana.has(mec.gost)) trenutnaKazna += 100;
-
-                    if (trenutnaKazna < najmanjaKazna) {
-                        najmanjaKazna = trenutnaKazna;
-                        najboljiMecIndex = i;
-                    }
-                    if (trenutnaKazna === 0) break; // Savršen meč pronađen
-                }
-
-                if (najboljiMecIndex !== -1) {
-                    let izabraniMec = preostaliMecevi.splice(najboljiMecIndex, 1)[0];
-                    dnevniMecevi.push(izabraniMec);
-                    koIgraDanas.add(izabraniMec.domacin);
-                    koIgraDanas.add(izabraniMec.gost);
-                    if (izabraniMec.grupa === strukturaGrupa.primarna) brojIzPrimarne++;
-                    else brojIzSekundarne++;
-                } else {
-                    // Ako nema meča koji zadovoljava balans grupe, olabavi pravilo balansa grupa za taj preostali meč
-                    let zamenskiIndex = preostaliMecevi.findIndex(m => !koIgraDanas.has(m.domacin) && !koIgraDanas.has(m.gost));
-                    if (zamenskiIndex !== -1) {
-                        let zamenskiMec = preostaliMecevi.splice(zamenskiIndex, 1)[0];
-                        dnevniMecevi.push(zamenskiMec);
-                        koIgraDanas.add(zamenskiMec.domacin);
-                        koIgraDanas.add(zamenskiMec.gost);
-                    } else {
-                        break; 
-                    }
-                }
-            }
-
-            // Ako je pri kraju turnira ostalo manje mečeva, prihvati ih iako ih nema tačno 3
-            if(dnevniMecevi.length > 0) {
-                rasporedDani.push({ dan: trenutniDanIndex, mecevi: dnevniMecevi });
-                koJeIgraoPrethodnogDana = new Set(koIgraDanas);
-                trenutniDanIndex++;
-            } else {
-                // Ako upadnemo u potpunu blokadu sa preostalim mečevima, izbaci ih silom
-                if(preostaliMecevi.length > 0) {
-                    rasporedDani.push({ dan: trenutniDanIndex, mecevi: [preostaliMecevi.shift()] });
-                    trenutniDanIndex++;
-                }
-            }
-        }
-
-        generisanRaspored = rasporedDani;
-        renderujRasporedIzMemorije();
-        await sacuvajUCloud();
-        alert("Raspored je uspešno generisan i zaključan u bazi sa unetim uslovima!");
-    }
-
-    function generisiRasporedPoDanima() {
-        renderujRasporedIzMemorije();
-    }
-
-    function renderujRasporedIzMemorije() {
-        const kontejner = document.getElementById('hronoloski-raspored-kontejner');
-        if (!kontejner) return;
-        kontejner.innerHTML = '';
-
-        if (!generisanRaspored || generisanRaspored.length === 0) {
-            kontejner.innerHTML = '<p style="color:#888; text-align:center; padding: 20px;">Nema generisanog rasporeda. Kliknite na dugme iznad da kreirate fiksni raspored.</p>';
-            return;
-        }
-
-        generisanRaspored.forEach(d => {
-            const divDan = document.createElement('div');
-            divDan.className = 'dan-blok';
-            divDan.innerHTML = `<div class="dan-naslov">📅 DAN ${d.dan}</div>`;
-
-            d.mecevi.forEach((m, i) => {
-                const divMec = document.createElement('div');
-                divMec.className = 'sched-match-row';
-                let otvaranjeZnak = (d.dan === 1 && i === 0) ? ' <span style="color:var(--green-success); font-weight:bold;">(🔥 Otvaranje turnira)</span>' : '';
-
-                divMec.innerHTML = `
-                    <div>
-                        <span class="badge-grupa">Grupa ${m.grupa}</span>
-                        <strong>${m.domacin}</strong> vs <strong>${m.gost}</strong> ${otvaranjeZnak}
-                    </div>
-                    <div style="font-size:12px; color:#777; font-weight:bold;">Meč br. ${i+1}</div>
-                `;
-                divDan.appendChild(divMec);
-            });
-            kontejner.appendChild(divDan);
-        });
-    }
-
     function renderujListuSvihUtakmicaOdigrano() {
         const kontejner = document.getElementById('lista-utakmica');
         if(!kontejner) return;
@@ -1383,7 +1181,7 @@
         const ime = imeInput.value.trim();
         if(!ime || !trenutnoOtvorenaEkipa) return;
         
-        if(!igraciPoEkipama[trenutnoOtvorenaEkipa]) igraciPoEkipama[trenutnoOtvorenaEkipa] = [];
+        if(!igraciPoEkipama[trenutnoOtvorenaEkipa]) idraciPoEkipama[trenutnoOtvorenaEkipa] = [];
         
         if(igraciPoEkipama[trenutnoOtvorenaEkipa].includes(ime)) {
             alert('Igrač sa ovim imenom je već u rosteru ove ekipe!');
@@ -1446,7 +1244,7 @@
         kontejner.innerHTML = '';
         
         if(pazarDani.length === 0) {
-            kontejner.innerHTML = `<p style="color:#888;">Nema upisanih pazara.</p>`;
+            kontejner.innerHTML = `<p style="color:#888;">Nema unetih pazara.</p>`;
             return;
         }
         
