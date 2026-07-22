@@ -1141,11 +1141,32 @@
         
         ['A', 'B'].forEach(grIme => {
             let lista = grupeMape[grIme] || [];
+            
+            // SORTIRANJE: Bodovi -> Gol-razlika -> Međusobni skor -> Dati golovi
             lista.sort((a,b) => {
                 if(b.bod !== a.bod) return b.bod - a.bod;
+                
                 const golRazlikaB = b.dg - b.pg;
                 const golRazlikaA = a.dg - a.pg;
                 if(golRazlikaB !== golRazlikaA) return golRazlikaB - golRazlikaA;
+                
+                // MEĐUSOBNI DUEL - provera ako imaju iste bodove i istu gol-razliku
+                let medjusobniSkor = 0; // > 0 ako je A bolji, < 0 ako je B bolji
+                utakmice.forEach(u => {
+                    if(u.faza === "Grupa") {
+                        if(u.domacin === a.ime && u.gost === b.ime) {
+                            if(u.goloviD > u.goloviG) medjusobniSkor += 1;
+                            else if(u.goloviD < u.goloviG) medjusobniSkor -= 1;
+                        } else if(u.domacin === b.ime && u.gost === a.ime) {
+                            if(u.goloviD > u.goloviG) medjusobniSkor -= 1;
+                            else if(u.goloviD < u.goloviG) medjusobniSkor += 1;
+                        }
+                    }
+                });
+
+                if(medjusobniSkor !== 0) return medjusobniSkor < 0 ? 1 : -1;
+
+                // Ako su i u međusobnom skoru izjednačeni, gledaju se ukupno dati golovi
                 return b.dg - a.dg;
             });
             
