@@ -406,20 +406,25 @@
 
     <div id="nokaut-tab" class="tab-content">
         <h2>Kostur Nokaut Faze Takmičenja</h2>
-        <p style="font-size: 14px; color: #666; margin-bottom: 20px;">Sistem automatski uzima top 4 ekipe iz Grupe A i Grupe B i kreira direktno Četvrtfinale.</p>
+        <p style="font-size: 14px; color: #666; margin-bottom: 20px;">Prve 2 ekipe idu direktno u Četvrtfinale. Ekipe od 3. do 6. mesta igraju Doigravanje (Baraž).</p>
         
         <div class="knockout-phase-block">
-            <div class="knockout-phase-title">1. Četvrtfinale (1/4 finala)</div>
+            <div class="knockout-phase-title">1. Doigravanje za Četvrtfinale (Baraž)</div>
+            <div id="doigravanje-matches-container"></div>
+        </div>
+
+        <div class="knockout-phase-block">
+            <div class="knockout-phase-title">2. Četvrtfinale (1/4 finala)</div>
             <div id="cetvrtfinale-matches-container"></div>
         </div>
 
         <div class="knockout-phase-block">
-            <div class="knockout-phase-title">2. Polufinale (1/2 finala)</div>
+            <div class="knockout-phase-title">3. Polufinale (1/2 finala)</div>
             <div id="polufinale-matches-container"></div>
         </div>
 
         <div class="knockout-phase-block">
-            <div class="knockout-phase-title">3. Utakmica za 3. mesto i Finale</div>
+            <div class="knockout-phase-title">4. Utakmica za 3. mesto i Finale</div>
             <div id="finale-matches-container"></div>
         </div>
     </div>
@@ -1070,7 +1075,8 @@
             const tbody = document.getElementById(`tabela-grupa-${grIme}-body`);
             lista.forEach((tim, index) => {
                 const tr = document.createElement('tr');
-                if(index < 4) tr.style.backgroundColor = "#eaf6ff"; 
+                if(index < 2) tr.style.backgroundColor = "#d4edda"; // Top 2 idu direktno
+                else if(index < 6) tr.style.backgroundColor = "#eaf6ff"; // Doigravanje
                 const grRazlika = tim.dg - tim.pg;
                 const znak = grRazlika > 0 ? "+" : "";
                 
@@ -1426,6 +1432,12 @@
         return utakmice.find(u => u.faza === faza && u.nokautOznaka === oznaka);
     }
 
+    function koJePobednik(faza, oznaka) {
+        const m = pronadjiNokautMec(faza, oznaka);
+        if(!m || m.goloviD === m.goloviG) return null;
+        return m.goloviD > m.goloviG ? m.domacin : m.gost;
+    }
+
     async function sacuvajNokautRezultat(faza, oznaka, domId, gosId) {
         const gDom = parseInt(document.getElementById(domId).value) || 0;
         const gGos = parseInt(document.getElementById(gosId).value) || 0;
@@ -1473,9 +1485,53 @@
     }
 
     function renderujNokautFazu() {
+        renderujDoigravanje();
         renderujCetvrtfinale();
         renderujPolufinale();
         renderujFinale();
+    }
+
+    function renderujDoigravanje() {
+        const kontejner = document.getElementById('doigravanje-matches-container');
+        if(!kontejner) return;
+        kontejner.innerHTML = '';
+        
+        const topA = poredakPoGrupama["A"] || [];
+        const topB = poredakPoGrupama["B"] || [];
+        
+        const paroviStruktura = [
+            { oznaka: "PO1", dom: topA[2], gos: topB[5], opis: "A3 vs B6" },
+            { oznaka: "PO2", dom: topA[3], gos: topB[4], opis: "A4 vs B5" },
+            { oznaka: "PO3", dom: topA[4], gos: topB[3], opis: "A5 vs B4" },
+            { oznaka: "PO4", dom: topA[5], gos: topB[2], opis: "A6 vs B3" }
+        ];
+        
+        paroviStruktura.forEach(p => {
+            const mec = pronadjiNokautMec("Doigravanje", p.oznaka);
+            const row = document.createElement('div');
+            row.className = 'knockout-match-row';
+            
+            if(!mec) {
+                row.innerHTML = `
+                    <div><span class="badge-grupa">${p.oznaka}</span> 📅 <i>Par: ${p.opis}</i> — <strong>${p.dom || '?'}</strong> vs <strong>${p.gos || '?'}</strong></div>
+                    <button class="btn-generate-match" onclick="generisiNokautMecSistemski('Doigravanje','${p.oznaka}','${p.dom}','${p.gos}')" ${(p.dom && p.gos)?'':'disabled'}>🔑 Zaključaj par i otvori meč</button>
+                `;
+            } else {
+                row.innerHTML = `
+                    <div style="flex:1;">
+                        <span class="badge-grupa" style="background:#005691; color:white;">${p.oznaka}</span> 
+                        <strong>${mec.domacin}</strong> vs <strong>${mec.gost}</strong>
+                    </div>
+                    <div style="display:flex; align-items:center; gap:8px;">
+                        <input type="number" id="input-${p.oznaka}-d" min="0" value="${mec.goloviD}" style="width:55px; text-align:center; padding:4px;">
+                        <span>:</span>
+                        <input type="number" id="input-${p.oznaka}-g" min="0" value="${mec.goloviG}" style="width:55px; text-align:center; padding:4px;">
+                        <button class="btn-submit" style="padding:5px 10px; font-size:12px;" onclick="sacuvajNokautRezultat('Doigravanje','${p.oznaka}','input-${p.oznaka}-d','input-${p.oznaka}-g')">Sačuvaj</button>
+                    </div>
+                `;
+            }
+            kontejner.appendChild(row);
+        });
     }
 
     function renderujCetvrtfinale() {
@@ -1485,12 +1541,17 @@
         
         const topA = poredakPoGrupama["A"] || [];
         const topB = poredakPoGrupama["B"] || [];
+
+        const pobednikPO1 = koJePobednik("Doigravanje", "PO1");
+        const pobednikPO2 = koJePobednik("Doigravanje", "PO2");
+        const pobednikPO3 = koJePobednik("Doigravanje", "PO3");
+        const pobednikPO4 = koJePobednik("Doigravanje", "PO4");
         
         const paroviStruktura = [
-            { oznaka: "QF1", dom: topA[0], gos: topB[3], opis: "A1 vs B4" },
-            { oznaka: "QF2", dom: topB[0], gos: topA[3], opis: "B1 vs A4" },
-            { oznaka: "QF3", dom: topA[1], gos: topB[2], opis: "A2 vs B3" },
-            { oznaka: "QF4", dom: topB[1], gos: topA[2], opis: "B2 vs A3" }
+            { oznaka: "QF1", dom: topA[0], gos: pobednikPO1, opis: "A1 vs Pobednik PO1 (A3-B6)" },
+            { oznaka: "QF2", dom: topB[0], gos: pobednikPO2, opis: "B1 vs Pobednik PO2 (A4-B5)" },
+            { oznaka: "QF3", dom: topA[1], gos: pobednikPO3, opis: "A2 vs Pobednik PO3 (A5-B4)" },
+            { oznaka: "QF4", dom: topB[1], gos: pobednikPO4, opis: "B2 vs Pobednik PO4 (A6-B3)" }
         ];
         
         paroviStruktura.forEach(p => {
@@ -1525,12 +1586,6 @@
         const kontejner = document.getElementById('polufinale-matches-container');
         if(!kontejner) return;
         kontejner.innerHTML = '';
-        
-        function koJePobednik(faza, oznaka) {
-            const m = pronadjiNokautMec(faza, oznaka);
-            if(!m || m.goloviD === m.goloviG) return null;
-            return m.goloviD > m.goloviG ? m.domacin : m.gost;
-        }
         
         const pQF1 = koJePobednik("Četvrtfinale", "QF1");
         const pQF4 = koJePobednik("Četvrtfinale", "QF4");
