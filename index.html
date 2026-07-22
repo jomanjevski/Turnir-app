@@ -29,7 +29,7 @@
     }
 
     .container {
-        max-width: 1200px;
+        max-width: 1300px;
         margin: 0 auto;
     }
 
@@ -254,24 +254,116 @@
         background: #333; color: white; padding: 8px 12px; border-radius: 4px; margin-top: 20px; font-size: 18px;
     }
 
-    .knockout-phase-block {
-        margin-bottom: 30px; background: #fdfdfd; border: 1px solid var(--border-gray); padding: 15px; border-radius: 6px;
-    }
-    .knockout-phase-title {
-        font-size: 18px; font-weight: bold; color: var(--dark-blue); border-bottom: 2px solid var(--primary-blue); padding-bottom: 5px; margin-bottom: 15px;
-    }
-    .knockout-match-row {
-        display: flex; align-items: center; justify-content: space-between; background: white; padding: 10px; border: 1px solid #eee; margin-bottom: 8px; border-radius: 4px;
-    }
-    .btn-generate-match {
-        background-color: var(--green-success); color: white; border: none; padding: 6px 12px; font-size: 13px; font-weight: bold; border-radius: 4px; cursor: pointer;
-    }
-    .btn-generate-match:disabled {
-        background-color: #bbb; cursor: not-allowed;
-    }
-
     .badge-grupa {
         background-color: #e6f2ff; color: var(--dark-blue); padding: 3px 8px; font-size: 12px; font-weight: bold; border-radius: 3px; border: 1px solid #b3d7ff; margin-right: 8px;
+    }
+
+    /* --- TOURNAMENT BRACKET STILOVI --- */
+    .tournament-container {
+        display: flex;
+        flex-direction: row;
+        gap: 25px;
+        overflow-x: auto;
+        padding: 20px 10px;
+        background: #fdfdfd;
+        border: 1px solid var(--border-gray);
+        border-radius: 8px;
+        align-items: stretch;
+    }
+
+    .bracket-column {
+        display: flex;
+        flex-direction: column;
+        justify-content: space-around;
+        min-width: 270px;
+        flex-shrink: 0;
+    }
+
+    .bracket-header {
+        font-size: 16px;
+        font-weight: bold;
+        color: var(--dark-blue);
+        text-align: center;
+        border-bottom: 2px solid var(--primary-blue);
+        padding-bottom: 8px;
+        margin-bottom: 15px;
+    }
+
+    .bracket-card {
+        background: #fff;
+        border: 1px solid var(--border-gray);
+        border-radius: 6px;
+        padding: 10px;
+        margin: 10px 0;
+        box-shadow: 0 2px 5px rgba(0,0,0,0.05);
+        position: relative;
+    }
+
+    .bracket-card.finale-card {
+        border: 2px solid #ffc107;
+        background: #fffdf0;
+    }
+
+    .bracket-tag {
+        font-size: 11px;
+        font-weight: bold;
+        color: #555;
+        margin-bottom: 6px;
+        display: flex;
+        justify-content: space-between;
+    }
+
+    .bracket-team-row {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        background: #f8f9fa;
+        padding: 6px 8px;
+        margin-bottom: 4px;
+        border-radius: 4px;
+        font-size: 13px;
+        font-weight: 600;
+        border: 1px solid #eee;
+    }
+
+    .bracket-team-row.winner {
+        background: #d1e7dd;
+        color: #0f5132;
+        border-color: #badbcc;
+    }
+
+    .bracket-team-row input {
+        width: 45px;
+        padding: 3px;
+        text-align: center;
+        font-size: 13px;
+    }
+
+    .btn-bracket-action {
+        width: 100%;
+        margin-top: 6px;
+        padding: 6px 8px;
+        font-size: 12px;
+        font-weight: bold;
+        border: none;
+        border-radius: 4px;
+        cursor: pointer;
+        transition: 0.2s;
+    }
+
+    .btn-lock-open {
+        background-color: var(--green-success);
+        color: white;
+    }
+
+    .btn-lock-open:disabled {
+        background-color: #ccc;
+        cursor: not-allowed;
+    }
+
+    .btn-save-score {
+        background-color: var(--primary-blue);
+        color: white;
     }
 
     @media screen and (max-width: 767px) {
@@ -406,26 +498,35 @@
 
     <div id="nokaut-tab" class="tab-content">
         <h2>Kostur Nokaut Faze Takmičenja</h2>
-        <p style="font-size: 14px; color: #666; margin-bottom: 20px;">Prve 2 ekipe idu direktno u Četvrtfinale. Ekipe od 3. do 6. mesta igraju Doigravanje (Baraž).</p>
+        <p style="font-size: 14px; color: #666; margin-bottom: 15px;">Prve 2 ekipe idu direktno u Četvrtfinale. Ekipe od 3. do 6. mesta igraju Doigravanje (Baraž).</p>
         
-        <div class="knockout-phase-block">
-            <div class="knockout-phase-title">1. Doigravanje za Četvrtfinale (Baraž)</div>
-            <div id="doigravanje-matches-container"></div>
-        </div>
+        <!-- HORIZONTALNI BRACKET KONTEJNER -->
+        <div class="tournament-container">
+            
+            <!-- KOLONA 1: BARAŽ -->
+            <div class="bracket-column">
+                <div class="bracket-header">1. Doigravanje (Baraž)</div>
+                <div id="doigravanje-matches-container"></div>
+            </div>
 
-        <div class="knockout-phase-block">
-            <div class="knockout-phase-title">2. Četvrtfinale (1/4 finala)</div>
-            <div id="cetvrtfinale-matches-container"></div>
-        </div>
+            <!-- KOLONA 2: ČETVRTFINALE -->
+            <div class="bracket-column">
+                <div class="bracket-header">2. Četvrtfinale</div>
+                <div id="cetvrtfinale-matches-container"></div>
+            </div>
 
-        <div class="knockout-phase-block">
-            <div class="knockout-phase-title">3. Polufinale (1/2 finala)</div>
-            <div id="polufinale-matches-container"></div>
-        </div>
+            <!-- KOLONA 3: POLUFINALE -->
+            <div class="bracket-column">
+                <div class="bracket-header">3. Polufinale</div>
+                <div id="polufinale-matches-container"></div>
+            </div>
 
-        <div class="knockout-phase-block">
-            <div class="knockout-phase-title">4. Utakmica za 3. mesto i Finale</div>
-            <div id="finale-matches-container"></div>
+            <!-- KOLONA 4: FINALE & 3. MESTO -->
+            <div class="bracket-column">
+                <div class="bracket-header">4. Finale i 3. mesto</div>
+                <div id="finale-matches-container"></div>
+            </div>
+
         </div>
     </div>
 
@@ -1491,6 +1592,42 @@
         renderujFinale();
     }
 
+    function kreirajBracketKarticu(faza, oznaka, dom, gos, opis, isFinale = false) {
+        const mec = pronadjiNokautMec(faza, oznaka);
+        const isWinnerDom = mec && mec.goloviD > mec.goloviG;
+        const isWinnerGos = mec && mec.goloviG > mec.goloviD;
+        
+        let cardHtml = `<div class="bracket-card ${isFinale ? 'finale-card' : ''}">`;
+        cardHtml += `<div class="bracket-tag"><span>${oznaka}</span><span>${opis}</span></div>`;
+        
+        if (!mec) {
+            cardHtml += `
+                <div class="bracket-team-row"><span>${dom || '?'}</span></div>
+                <div class="bracket-team-row"><span>${gos || '?'}</span></div>
+                <button class="btn-bracket-action btn-lock-open" onclick="generisiNokautMecSistemski('${faza}','${oznaka}','${dom}','${gos}')" ${(dom && gos) ? '' : 'disabled'}>
+                    🔑 Otvori meč
+                </button>
+            `;
+        } else {
+            cardHtml += `
+                <div class="bracket-team-row ${isWinnerDom ? 'winner' : ''}">
+                    <span>${mec.domacin}</span>
+                    <input type="number" id="input-${oznaka}-d" min="0" value="${mec.goloviD}">
+                </div>
+                <div class="bracket-team-row ${isWinnerGos ? 'winner' : ''}">
+                    <span>${mec.gost}</span>
+                    <input type="number" id="input-${oznaka}-g" min="0" value="${mec.goloviG}">
+                </div>
+                <button class="btn-bracket-action btn-save-score" onclick="sacuvajNokautRezultat('${faza}','${oznaka}','input-${oznaka}-d','input-${oznaka}-g')">
+                    Sačuvaj
+                </button>
+            `;
+        }
+        
+        cardHtml += `</div>`;
+        return cardHtml;
+    }
+
     function renderujDoigravanje() {
         const kontejner = document.getElementById('doigravanje-matches-container');
         if(!kontejner) return;
@@ -1499,38 +1636,15 @@
         const topA = poredakPoGrupama["A"] || [];
         const topB = poredakPoGrupama["B"] || [];
         
-        const paroviStruktura = [
+        const parovi = [
             { oznaka: "PO1", dom: topA[2], gos: topB[5], opis: "A3 vs B6" },
             { oznaka: "PO2", dom: topA[3], gos: topB[4], opis: "A4 vs B5" },
             { oznaka: "PO3", dom: topA[4], gos: topB[3], opis: "A5 vs B4" },
             { oznaka: "PO4", dom: topA[5], gos: topB[2], opis: "A6 vs B3" }
         ];
         
-        paroviStruktura.forEach(p => {
-            const mec = pronadjiNokautMec("Doigravanje", p.oznaka);
-            const row = document.createElement('div');
-            row.className = 'knockout-match-row';
-            
-            if(!mec) {
-                row.innerHTML = `
-                    <div><span class="badge-grupa">${p.oznaka}</span> 📅 <i>Par: ${p.opis}</i> — <strong>${p.dom || '?'}</strong> vs <strong>${p.gos || '?'}</strong></div>
-                    <button class="btn-generate-match" onclick="generisiNokautMecSistemski('Doigravanje','${p.oznaka}','${p.dom}','${p.gos}')" ${(p.dom && p.gos)?'':'disabled'}>🔑 Zaključaj par i otvori meč</button>
-                `;
-            } else {
-                row.innerHTML = `
-                    <div style="flex:1;">
-                        <span class="badge-grupa" style="background:#005691; color:white;">${p.oznaka}</span> 
-                        <strong>${mec.domacin}</strong> vs <strong>${mec.gost}</strong>
-                    </div>
-                    <div style="display:flex; align-items:center; gap:8px;">
-                        <input type="number" id="input-${p.oznaka}-d" min="0" value="${mec.goloviD}" style="width:55px; text-align:center; padding:4px;">
-                        <span>:</span>
-                        <input type="number" id="input-${p.oznaka}-g" min="0" value="${mec.goloviG}" style="width:55px; text-align:center; padding:4px;">
-                        <button class="btn-submit" style="padding:5px 10px; font-size:12px;" onclick="sacuvajNokautRezultat('Doigravanje','${p.oznaka}','input-${p.oznaka}-d','input-${p.oznaka}-g')">Sačuvaj</button>
-                    </div>
-                `;
-            }
-            kontejner.appendChild(row);
+        parovi.forEach(p => {
+            kontejner.innerHTML += kreirajBracketKarticu("Doigravanje", p.oznaka, p.dom, p.gos, p.opis);
         });
     }
 
@@ -1547,38 +1661,15 @@
         const pobednikPO3 = koJePobednik("Doigravanje", "PO3");
         const pobednikPO4 = koJePobednik("Doigravanje", "PO4");
         
-        const paroviStruktura = [
-            { oznaka: "QF1", dom: topA[0], gos: pobednikPO1, opis: "A1 vs Pobednik PO1 (A3-B6)" },
-            { oznaka: "QF2", dom: topB[0], gos: pobednikPO2, opis: "B1 vs Pobednik PO2 (A4-B5)" },
-            { oznaka: "QF3", dom: topA[1], gos: pobednikPO3, opis: "A2 vs Pobednik PO3 (A5-B4)" },
-            { oznaka: "QF4", dom: topB[1], gos: pobednikPO4, opis: "B2 vs Pobednik PO4 (A6-B3)" }
+        const parovi = [
+            { oznaka: "QF1", dom: topA[0], gos: pobednikPO1, opis: "A1 vs PO1" },
+            { oznaka: "QF2", dom: topB[0], gos: pobednikPO2, opis: "B1 vs PO2" },
+            { oznaka: "QF3", dom: topA[1], gos: pobednikPO3, opis: "A2 vs PO3" },
+            { oznaka: "QF4", dom: topB[1], gos: pobednikPO4, opis: "B2 vs PO4" }
         ];
         
-        paroviStruktura.forEach(p => {
-            const mec = pronadjiNokautMec("Četvrtfinale", p.oznaka);
-            const row = document.createElement('div');
-            row.className = 'knockout-match-row';
-            
-            if(!mec) {
-                row.innerHTML = `
-                    <div><span class="badge-grupa">${p.oznaka}</span> 📅 <i>Par: ${p.opis}</i> — <strong>${p.dom || '?'}</strong> vs <strong>${p.gos || '?'}</strong></div>
-                    <button class="btn-generate-match" onclick="generisiNokautMecSistemski('Četvrtfinale','${p.oznaka}','${p.dom}','${p.gos}')" ${(p.dom && p.gos)?'':'disabled'}>🔑 Zaključaj par i otvori meč</button>
-                `;
-            } else {
-                row.innerHTML = `
-                    <div style="flex:1;">
-                        <span class="badge-grupa" style="background:#005691; color:white;">${p.oznaka}</span> 
-                        <strong>${mec.domacin}</strong> vs <strong>${mec.gost}</strong>
-                    </div>
-                    <div style="display:flex; align-items:center; gap:8px;">
-                        <input type="number" id="input-${p.oznaka}-d" min="0" value="${mec.goloviD}" style="width:55px; text-align:center; padding:4px;">
-                        <span>:</span>
-                        <input type="number" id="input-${p.oznaka}-g" min="0" value="${mec.goloviG}" style="width:55px; text-align:center; padding:4px;">
-                        <button class="btn-submit" style="padding:5px 10px; font-size:12px;" onclick="sacuvajNokautRezultat('Četvrtfinale','${p.oznaka}','input-${p.oznaka}-d','input-${p.oznaka}-g')">Sačuvaj</button>
-                    </div>
-                `;
-            }
-            kontejner.appendChild(row);
+        parovi.forEach(p => {
+            kontejner.innerHTML += kreirajBracketKarticu("Četvrtfinale", p.oznaka, p.dom, p.gos, p.opis);
         });
     }
 
@@ -1592,36 +1683,13 @@
         const pQF2 = koJePobednik("Četvrtfinale", "QF2");
         const pQF3 = koJePobednik("Četvrtfinale", "QF3");
         
-        const struktura = [
-            { oznaka: "SF1", dom: pQF1, gos: pQF4, opis: "Pobednik QF1 vs Pobednik QF4" },
-            { oznaka: "SF2", dom: pQF2, gos: pQF3, opis: "Pobednik QF2 vs Pobednik QF3" }
+        const parovi = [
+            { oznaka: "SF1", dom: pQF1, gos: pQF4, opis: "QF1 vs QF4" },
+            { oznaka: "SF2", dom: pQF2, gos: pQF3, opis: "QF2 vs QF3" }
         ];
         
-        struktura.forEach(p => {
-            const mec = pronadjiNokautMec("Polufinale", p.oznaka);
-            const row = document.createElement('div');
-            row.className = 'knockout-match-row';
-            
-            if(!mec) {
-                row.innerHTML = `
-                    <div><span class="badge-grupa">${p.oznaka}</span> 📅 <i>Par: ${p.opis}</i> — <strong>${p.dom || '?'}</strong> vs <strong>${p.gos || '?'}</strong></div>
-                    <button class="btn-generate-match" onclick="generisiNokautMecSistemski('Polufinale','${p.oznaka}','${p.dom}','${p.gos}')" ${(p.dom && p.gos)?'':'disabled'}>🔑 Otvori polufinale</button>
-                `;
-            } else {
-                row.innerHTML = `
-                    <div style="flex:1;">
-                        <span class="badge-grupa" style="background:#005691; color:white;">${p.oznaka}</span> 
-                        <strong>${mec.domacin}</strong> vs <strong>${mec.gost}</strong>
-                    </div>
-                    <div style="display:flex; align-items:center; gap:8px;">
-                        <input type="number" id="input-${p.oznaka}-d" min="0" value="${mec.goloviD}" style="width:55px; text-align:center; padding:4px;">
-                        <span>:</span>
-                        <input type="number" id="input-${p.oznaka}-g" min="0" value="${mec.goloviG}" style="width:55px; text-align:center; padding:4px;">
-                        <button class="btn-submit" style="padding:5px 10px; font-size:12px;" onclick="sacuvajNokautRezultat('Polufinale','${p.oznaka}','input-${p.oznaka}-d','input-${p.oznaka}-g')">Sačuvaj</button>
-                    </div>
-                `;
-            }
-            kontejner.appendChild(row);
+        parovi.forEach(p => {
+            kontejner.innerHTML += kreirajBracketKarticu("Polufinale", p.oznaka, p.dom, p.gos, p.opis);
         });
     }
 
@@ -1640,38 +1708,8 @@
         const sf1 = pobednikIPoraženi("Polufinale", "SF1");
         const sf2 = pobednikIPoraženi("Polufinale", "SF2");
         
-        const struktura = [
-            { faza: "Meč za 3. mesto", oznaka: "3M", dom: sf1.io, gos: sf2.io, opis: "Poraženi SF1 vs Poraženi SF2" },
-            { faza: "FINALE", oznaka: "FIN", dom: sf1.p, gos: sf2.p, opis: "Pobednik SF1 vs Pobednik SF2" }
-        ];
-        
-        struktura.forEach(p => {
-            const mec = pronadjiNokautMec(p.faza, p.oznaka);
-            const row = document.createElement('div');
-            row.className = 'knockout-match-row';
-            if(p.oznaka === "FIN") { row.style.border = "2px solid #ffc107"; row.style.backgroundColor = "#fffdf0"; }
-            
-            if(!mec) {
-                row.innerHTML = `
-                    <div><span class="badge-grupa">${p.oznaka}</span> 🏆 <b>${p.faza}:</b> <strong>${p.dom || '?'}</strong> vs <strong>${p.gos || '?'}</strong></div>
-                    <button class="btn-generate-match" style="${p.oznaka==='FIN'?'background:#ffc107; color:#333;':''}" onclick="generisiNokautMecSistemski('${p.faza}','${p.oznaka}','${p.dom}','${p.gos}')" ${(p.dom && p.gos)?'':'disabled'}>🔥 Lansiraj meč</button>
-                `;
-            } else {
-                row.innerHTML = `
-                    <div style="flex:1;">
-                        <span class="badge-grupa" style="background:#333; color:white;">${p.oznaka}</span> 
-                        <b>${p.faza}:</b> <strong>${mec.domacin}</strong> vs <strong>${mec.gost}</strong>
-                    </div>
-                    <div style="display:flex; align-items:center; gap:8px;">
-                        <input type="number" id="input-${p.oznaka}-d" min="0" value="${mec.goloviD}" style="width:55px; text-align:center; padding:4px;">
-                        <span>:</span>
-                        <input type="number" id="input-${p.oznaka}-g" min="0" value="${mec.goloviG}" style="width:55px; text-align:center; padding:4px;">
-                        <button class="btn-submit" style="padding:5px 10px; font-size:12px;" onclick="sacuvajNokautRezultat('${p.faza}','${p.oznaka}','input-${p.oznaka}-d','input-${p.oznaka}-g')">Sačuvaj</button>
-                    </div>
-                `;
-            }
-            kontejner.appendChild(row);
-        });
+        kontejner.innerHTML += kreirajBracketKarticu("FINALE", "FIN", sf1.p, sf2.p, "🏆 Finale", true);
+        kontejner.innerHTML += kreirajBracketKarticu("Meč za 3. mesto", "3M", sf1.io, sf2.io, "🥉 Za 3. mesto");
     }
 
     window.onload = function() {
