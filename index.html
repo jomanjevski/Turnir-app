@@ -275,7 +275,7 @@
         display: flex;
         flex-direction: column;
         justify-content: space-around;
-        min-width: 270px;
+        min-width: 290px;
         flex-shrink: 0;
     }
 
@@ -337,6 +337,22 @@
         padding: 3px;
         text-align: center;
         font-size: 13px;
+    }
+
+    .bracket-strelci-box {
+        background: #f1f3f5;
+        border: 1px solid #dee2e6;
+        padding: 8px;
+        border-radius: 4px;
+        margin-top: 8px;
+        font-size: 12px;
+    }
+
+    .bracket-strelci-box h5 {
+        font-size: 11px;
+        margin-bottom: 4px;
+        color: #495057;
+        text-transform: uppercase;
     }
 
     .btn-bracket-action {
@@ -498,12 +514,12 @@
 
     <div id="nokaut-tab" class="tab-content">
         <h2>Kostur Nokaut Faze Takmičenja</h2>
-        <p style="font-size: 14px; color: #666; margin-bottom: 15px;">Prve 2 ekipe idu direktno u Četvrtfinale. Ekipe od 3. do 6. mesta igraju Doigravanje (Baraž).</p>
+        <p style="font-size: 14px; color: #666; margin-bottom: 15px;">Pobednici baraža idu u Četvrtfinale. Unosite rezultate i izaberite strelce za svaki meč.</p>
         
         <!-- HORIZONTALNI BRACKET KONTEJNER -->
         <div class="tournament-container">
             
-            <!-- KOLONA 1: BARAŽ -->
+            <!-- KOLONA 1: BARAŽ (DOIGRAVANJE) -->
             <div class="bracket-column">
                 <div class="bracket-header">1. Doigravanje (Baraž)</div>
                 <div id="doigravanje-matches-container"></div>
@@ -900,7 +916,8 @@
                     else goloviBrojac[s] = 1;
                 });
                 
-                htmlMecevi += `<div class="match-card" style="padding:10px;"><div style="display:flex; justify-content:space-between;"><span>${u.domacin} vs ${u.gost}</span><span class="match-score-display" style="font-size:14px; padding:2px 8px;">${u.goloviD}:${u.goloviG}</span></div></div>`;
+                let oznakaFaze = u.faza === "Grupa" ? "" : `[${u.faza}] `;
+                htmlMecevi += `<div class="match-card" style="padding:10px;"><div style="display:flex; justify-content:space-between;"><span>${oznakaFaze}${u.domacin} vs ${u.gost}</span><span class="match-score-display" style="font-size:14px; padding:2px 8px;">${u.goloviD}:${u.goloviG}</span></div></div>`;
             }
         });
         
@@ -1150,8 +1167,7 @@
                 const golRazlikaA = a.dg - a.pg;
                 if(golRazlikaB !== golRazlikaA) return golRazlikaB - golRazlikaA;
                 
-                // MEĐUSOBNI DUEL - provera ako imaju iste bodove i istu gol-razliku
-                let medjusobniSkor = 0; // > 0 ako je A bolji, < 0 ako je B bolji
+                let medjusobniSkor = 0;
                 utakmice.forEach(u => {
                     if(u.faza === "Grupa") {
                         if(u.domacin === a.ime && u.gost === b.ime) {
@@ -1166,7 +1182,6 @@
 
                 if(medjusobniSkor !== 0) return medjusobniSkor < 0 ? 1 : -1;
 
-                // Ako su i u međusobnom skoru izjednačeni, gledaju se ukupno dati golovi
                 return b.dg - a.dg;
             });
             
@@ -1197,8 +1212,8 @@
             const tbody = document.getElementById(`tabela-grupa-${grIme}-body`);
             lista.forEach((tim, index) => {
                 const tr = document.createElement('tr');
-                if(index < 2) tr.style.backgroundColor = "#d4edda"; // Top 2 idu direktno
-                else if(index < 6) tr.style.backgroundColor = "#eaf6ff"; // Doigravanje
+                if(index < 2) tr.style.backgroundColor = "#d4edda";
+                else if(index < 6) tr.style.backgroundColor = "#eaf6ff";
                 const grRazlika = tim.dg - tim.pg;
                 const znak = grRazlika > 0 ? "+" : "";
                 
@@ -1560,9 +1575,72 @@
         return m.goloviD > m.goloviG ? m.domacin : m.gost;
     }
 
-    async function sacuvajNokautRezultat(faza, oznaka, domId, gosId) {
-        const gDom = parseInt(document.getElementById(domId).value) || 0;
-        const gGos = parseInt(document.getElementById(gosId).value) || 0;
+    function koJePorazeni(faza, oznaka) {
+        const m = pronadjiNokautMec(faza, oznaka);
+        if(!m || m.goloviD === m.goloviG) return null;
+        return m.goloviD > m.goloviG ? m.gost : m.domacin;
+    }
+
+    function azurirjStrelceUMecuNokauta(oznaka) {
+        const gDom = parseInt(document.getElementById(`input-${oznaka}-d`).value) || 0;
+        const gGos = parseInt(document.getElementById(`input-${oznaka}-g`).value) || 0;
+        const mec = utakmice.find(u => u.nokautOznaka === oznaka);
+        if(!mec) return;
+
+        const box = document.getElementById(`strelci-box-${oznaka}`);
+        if(!box) return;
+
+        if(gDom === 0 && gGos === 0) {
+            box.style.display = 'none';
+            return;
+        }
+
+        box.style.display = 'block';
+
+        const igraciD = igraciPoEkipama[mec.domacin] || [];
+        const igraciG = igraciPoEkipama[mec.gost] || [];
+
+        let optD = `<option value="">-- Strelac --</option>`;
+        igraciD.forEach(i => optD += `<option value="${i}">${i}</option>`);
+
+        let optG = `<option value="">-- Strelac --</option>`;
+        igraciG.forEach(i => optG += `<option value="${i}">${i}</option>`);
+
+        let html = '';
+        if(gDom > 0) {
+            html += `<h5>⚽ ${mec.domacin}:</h5>`;
+            for(let i=0; i<gDom; i++) {
+                let postojeci = (mec.strelciDomacin && mec.strelciDomacin[i]) ? mec.strelciDomacin[i] : "";
+                html += `<div style="margin-bottom:3px;"><select class="nokaut-sel-d-${oznaka}" style="padding:2px; font-size:11px;">`;
+                html += `<option value="">-- Nepoznato / Bez strelca --</option>`;
+                igraciD.forEach(ig => {
+                    let sel = (ig === postojeci) ? 'selected' : '';
+                    html += `<option value="${ig}" ${sel}>${ig}</option>`;
+                });
+                html += `</select></div>`;
+            }
+        }
+
+        if(gGos > 0) {
+            html += `<h5 style="margin-top:5px;">⚽ ${mec.gost}:</h5>`;
+            for(let i=0; i<gGos; i++) {
+                let postojeci = (mec.strelciGost && mec.strelciGost[i]) ? mec.strelciGost[i] : "";
+                html += `<div style="margin-bottom:3px;"><select class="nokaut-sel-g-${oznaka}" style="padding:2px; font-size:11px;">`;
+                html += `<option value="">-- Nepoznato / Bez strelca --</option>`;
+                igraciG.forEach(ig => {
+                    let sel = (ig === postojeci) ? 'selected' : '';
+                    html += `<option value="${ig}" ${sel}>${ig}</option>`;
+                });
+                html += `</select></div>`;
+            }
+        }
+
+        box.innerHTML = html;
+    }
+
+    async function sacuvajNokautRezultat(faza, oznaka) {
+        const gDom = parseInt(document.getElementById(`input-${oznaka}-d`).value) || 0;
+        const gGos = parseInt(document.getElementById(`input-${oznaka}-g`).value) || 0;
         
         let mec = utakmice.find(u => u.faza === faza && u.nokautOznaka === oznaka);
         if(!mec) return;
@@ -1574,8 +1652,17 @@
         
         mec.goloviD = gDom;
         mec.goloviG = gGos;
+
+        // Prikupljanje strelaca
+        const strelciD = [];
+        document.querySelectorAll(`.nokaut-sel-d-${oznaka}`).forEach(s => strelciD.push(s.value || "/"));
+        const strelciG = [];
+        document.querySelectorAll(`.nokaut-sel-g-${oznaka}`).forEach(s => strelciG.push(s.value || "/"));
+
+        mec.strelciDomacin = strelciD;
+        mec.strelciGost = strelciG;
         
-        alert(`Sačuvan rezultat za ${faza} (${oznaka}): ${mec.domacin} ${gDom}:${gGos} ${mec.gost}`);
+        alert(`Sačuvan rezultat i strelci za ${faza} (${oznaka}): ${mec.domacin} ${gDom}:${gGos} ${mec.gost}`);
         osveziSveEkrane();
         await sacuvajUCloud();
     }
@@ -1633,13 +1720,14 @@
             cardHtml += `
                 <div class="bracket-team-row ${isWinnerDom ? 'winner' : ''}">
                     <span>${mec.domacin}</span>
-                    <input type="number" id="input-${oznaka}-d" min="0" value="${mec.goloviD}">
+                    <input type="number" id="input-${oznaka}-d" min="0" value="${mec.goloviD}" oninput="azurirjStrelceUMecuNokauta('${oznaka}')">
                 </div>
                 <div class="bracket-team-row ${isWinnerGos ? 'winner' : ''}">
                     <span>${mec.gost}</span>
-                    <input type="number" id="input-${oznaka}-g" min="0" value="${mec.goloviG}">
+                    <input type="number" id="input-${oznaka}-g" min="0" value="${mec.goloviG}" oninput="azurirjStrelceUMecuNokauta('${oznaka}')">
                 </div>
-                <button class="btn-bracket-action btn-save-score" onclick="sacuvajNokautRezultat('${faza}','${oznaka}','input-${oznaka}-d','input-${oznaka}-g')">
+                <div id="strelci-box-${oznaka}" class="bracket-strelci-box" style="display:none;"></div>
+                <button class="btn-bracket-action btn-save-score" onclick="sacuvajNokautRezultat('${faza}','${oznaka}')">
                     Sačuvaj
                 </button>
             `;
@@ -1654,18 +1742,17 @@
         if(!kontejner) return;
         kontejner.innerHTML = '';
         
-        const topA = poredakPoGrupama["A"] || [];
-        const topB = poredakPoGrupama["B"] || [];
-        
+        // Fiksirani parovi doigravanja sa tvoje slike
         const parovi = [
-            { oznaka: "PO1", dom: topA[2], gos: topB[5], opis: "A3 vs B6" },
-            { oznaka: "PO2", dom: topA[3], gos: topB[4], opis: "A4 vs B5" },
-            { oznaka: "PO3", dom: topA[4], gos: topB[3], opis: "A5 vs B4" },
-            { oznaka: "PO4", dom: topA[5], gos: topB[2], opis: "A6 vs B3" }
+            { oznaka: "PO1", dom: "AGROPAVKOV", gos: "CRNOTRAVAC", opis: "Baraž 1" },
+            { oznaka: "PO2", dom: "METROPOLA", gos: "KDK GIPS", opis: "Baraž 2" },
+            { oznaka: "PO3", dom: "DACINI SINOVI", gos: "7 I PO IGRAČA", opis: "Baraž 3" },
+            { oznaka: "PO4", dom: "SUVI PLIČ 3", gos: "BOCA JUNIORS", opis: "Baraž 4" }
         ];
         
         parovi.forEach(p => {
             kontejner.innerHTML += kreirajBracketKarticu("Doigravanje", p.oznaka, p.dom, p.gos, p.opis);
+            setTimeout(() => azurirjStrelceUMecuNokauta(p.oznaka), 50);
         });
     }
 
@@ -1674,23 +1761,22 @@
         if(!kontejner) return;
         kontejner.innerHTML = '';
         
-        const topA = poredakPoGrupama["A"] || [];
-        const topB = poredakPoGrupama["B"] || [];
-
         const pobednikPO1 = koJePobednik("Doigravanje", "PO1");
         const pobednikPO2 = koJePobednik("Doigravanje", "PO2");
         const pobednikPO3 = koJePobednik("Doigravanje", "PO3");
         const pobednikPO4 = koJePobednik("Doigravanje", "PO4");
         
+        // Fiksirani nosioci ¼ finala sa tvoje slike
         const parovi = [
-            { oznaka: "QF1", dom: topA[0], gos: pobednikPO1, opis: "A1 vs PO1" },
-            { oznaka: "QF2", dom: topB[0], gos: pobednikPO2, opis: "B1 vs PO2" },
-            { oznaka: "QF3", dom: topA[1], gos: pobednikPO3, opis: "A2 vs PO3" },
-            { oznaka: "QF4", dom: topB[1], gos: pobednikPO4, opis: "B2 vs PO4" }
+            { oznaka: "QF1", dom: "CARINA BROTHERS", gos: pobednikPO1, opis: "1/4 Finale 1" },
+            { oznaka: "QF2", dom: "FARMA VARGA", gos: pobednikPO2, opis: "1/4 Finale 2" },
+            { oznaka: "QF3", dom: "KISELI KRASTAVCI", gos: pobednikPO3, opis: "1/4 Finale 3" },
+            { oznaka: "QF4", dom: "KOD SILVANE", gos: pobednikPO4, opis: "1/4 Finale 4" }
         ];
         
         parovi.forEach(p => {
             kontejner.innerHTML += kreirajBracketKarticu("Četvrtfinale", p.oznaka, p.dom, p.gos, p.opis);
+            setTimeout(() => azurirjStrelceUMecuNokauta(p.oznaka), 50);
         });
     }
 
@@ -1700,17 +1786,18 @@
         kontejner.innerHTML = '';
         
         const pQF1 = koJePobednik("Četvrtfinale", "QF1");
-        const pQF4 = koJePobednik("Četvrtfinale", "QF4");
         const pQF2 = koJePobednik("Četvrtfinale", "QF2");
         const pQF3 = koJePobednik("Četvrtfinale", "QF3");
+        const pQF4 = koJePobednik("Četvrtfinale", "QF4");
         
         const parovi = [
-            { oznaka: "SF1", dom: pQF1, gos: pQF4, opis: "QF1 vs QF4" },
-            { oznaka: "SF2", dom: pQF2, gos: pQF3, opis: "QF2 vs QF3" }
+            { oznaka: "SF1", dom: pQF1, gos: pQF2, opis: "QF1 vs QF2" },
+            { oznaka: "SF2", dom: pQF3, gos: pQF4, opis: "QF3 vs QF4" }
         ];
         
         parovi.forEach(p => {
             kontejner.innerHTML += kreirajBracketKarticu("Polufinale", p.oznaka, p.dom, p.gos, p.opis);
+            setTimeout(() => azurirjStrelceUMecuNokauta(p.oznaka), 50);
         });
     }
 
@@ -1719,18 +1806,16 @@
         if(!kontejner) return;
         kontejner.innerHTML = '';
         
-        function pobednikIPoraženi(faza, oznaka) {
-            const m = pronadjiNokautMec(faza, oznaka);
-            if(!m || m.goloviD === m.goloviG) return { p: null, io: null };
-            if(m.goloviD > m.goloviG) return { p: m.domacin, io: m.gost };
-            return { p: m.gost, io: m.domacin };
-        }
+        const pSF1 = koJePobednik("Polufinale", "SF1");
+        const pSF2 = koJePobednik("Polufinale", "SF2");
+        const iSF1 = koJePorazeni("Polufinale", "SF1");
+        const iSF2 = koJePorazeni("Polufinale", "SF2");
         
-        const sf1 = pobednikIPoraženi("Polufinale", "SF1");
-        const sf2 = pobednikIPoraženi("Polufinale", "SF2");
-        
-        kontejner.innerHTML += kreirajBracketKarticu("FINALE", "FIN", sf1.p, sf2.p, "🏆 Finale", true);
-        kontejner.innerHTML += kreirajBracketKarticu("Meč za 3. mesto", "3M", sf1.io, sf2.io, "🥉 Za 3. mesto");
+        kontejner.innerHTML += kreirajBracketKarticu("FINALE", "FIN", pSF1, pSF2, "🏆 Finale", true);
+        setTimeout(() => azurirjStrelceUMecuNokauta("FIN"), 50);
+
+        kontejner.innerHTML += kreirajBracketKarticu("Meč za 3. mesto", "3M", iSF1, iSF2, "🥉 Za 3. mesto");
+        setTimeout(() => azurirjStrelceUMecuNokauta("3M"), 50);
     }
 
     window.onload = function() {
