@@ -513,7 +513,7 @@
 
     <div id="nokaut-tab" class="tab-content">
         <h2>Kostur Nokaut Faze Takmičenja</h2>
-        <p style="font-size: 14px; color: #666; margin-bottom: 15px;">Pobednici mečeva se automatski prebacuju u sledeće kolo!</p>
+        <p style="font-size: 14px; color: #666; margin-bottom: 15px;">Pobednici mečeva se automatski prebacuju u sledeću rundu!</p>
         
         <!-- HORIZONTALNI BRACKET KONTEJNER -->
         <div class="tournament-container">
@@ -808,7 +808,7 @@
         const pocetnePostavke = [
             { faza: 'Doigravanje', oznaka: 'PO1', dom: 'AgroPavkov', gos: 'Crnotravac' },
             { faza: 'Doigravanje', oznaka: 'PO2', dom: 'Metropola', gos: 'KDK Gips' },
-            { faza: 'Doigravanje', oznaka: 'PO3', dom: 'Dacićini Sinovi', gos: '7 i po Igrača' },
+            { faza: 'Doigravanje', oznaka: 'PO3', dom: 'Dacini Sinovi', gos: '7 i po Igrača' },
             { faza: 'Doigravanje', oznaka: 'PO4', dom: 'Suvi Plić 3', gos: 'Boca Juniors' },
             
             { faza: 'Četvrtfinale', oznaka: 'QF1', dom: 'Carina Brothers', gos: '' },
@@ -832,7 +832,7 @@
                     nokautOznaka: item.oznaka
                 });
             } else {
-                // Osigurava da se vaši parovi uvek prenesu ako polje nije definisano
+                // Osigurava da se tačni nazivi ekipa prenesu i ažuriraju ako je u bazi stajalo staro ime
                 if(item.dom) mec.domacin = item.dom;
                 if(item.gos && !mec.gost) mec.gost = item.gos;
             }
