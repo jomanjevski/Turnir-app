@@ -258,6 +258,109 @@
         background-color: #e6f2ff; color: var(--dark-blue); padding: 3px 8px; font-size: 12px; font-weight: bold; border-radius: 3px; border: 1px solid #b3d7ff; margin-right: 8px;
     }
 
+    /* STILOVI ZA VIZUELNI BRACKET */
+    .bracket-wrapper {
+        background: radial-gradient(circle at center, #1b2838 0%, #0d131a 100%);
+        border-radius: 12px;
+        padding: 30px 20px;
+        color: white;
+        overflow-x: auto;
+        box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+    }
+    .bracket-header {
+        text-align: center;
+        margin-bottom: 30px;
+    }
+    .bracket-header h2 {
+        font-size: 24px;
+        letter-spacing: 2px;
+        text-transform: uppercase;
+        color: #ffffff;
+    }
+    .bracket-header span {
+        color: #4da6ff;
+        font-size: 14px;
+        font-weight: 600;
+    }
+
+    .bracket-container {
+        display: flex;
+        justify-content: space-between;
+        min-width: 900px;
+        gap: 20px;
+        position: relative;
+    }
+
+    .bracket-column {
+        flex: 1;
+        display: flex;
+        flex-direction: column;
+        justify-content: space-around;
+    }
+
+    .col-title {
+        text-align: center;
+        font-size: 13px;
+        font-weight: bold;
+        letter-spacing: 1.5px;
+        color: #8fa3bf;
+        margin-bottom: 20px;
+        text-transform: uppercase;
+    }
+
+    .bracket-match {
+        display: flex;
+        flex-direction: column;
+        gap: 2px;
+        background: rgba(16, 26, 38, 0.8);
+        border: 1px solid #2a3f5a;
+        border-radius: 6px;
+        padding: 6px;
+        position: relative;
+        box-shadow: 0 4px 10px rgba(0,0,0,0.3);
+    }
+
+    .bracket-team {
+        background: #0f1823;
+        padding: 8px 12px;
+        font-size: 12px;
+        font-weight: 700;
+        letter-spacing: 0.5px;
+        color: #e0e6ed;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        border-radius: 3px;
+        border-left: 3px solid transparent;
+        transition: all 0.2s;
+    }
+
+    .bracket-team.winner {
+        border-left: 3px solid #00d26a;
+        color: #fff;
+        background: #142536;
+    }
+
+    .bracket-team .score {
+        background: #1a2938;
+        padding: 2px 6px;
+        border-radius: 3px;
+        font-size: 11px;
+        color: #4da6ff;
+    }
+
+    /* Konektori (Linije izmedju faza) */
+    .bracket-column:not(:last-child) .bracket-match::after {
+        content: '';
+        position: absolute;
+        right: -20px;
+        top: 50%;
+        width: 20px;
+        height: 2px;
+        background-color: #2b45ff;
+        z-index: 1;
+    }
+
     @media screen and (max-width: 767px) {
         body { padding: 5px; }
         .grid-2col { grid-template-columns: 1fr; gap: 10px; }
@@ -451,9 +554,17 @@
                     </form>
                 </div>
             </div>
-            <div>
-                <h2>Kostur Nokaut Faze</h2>
-                <div id="prikaz-kostur-nokaut" style="margin-top:15px;"></div>
+
+            <!-- VIZUELNI BRACKET TURNIRA -->
+            <div class="bracket-wrapper">
+                <div class="bracket-header">
+                    <h2>FK ZADRUGAR</h2>
+                    <span>TURNIR 2026</span>
+                </div>
+                
+                <div class="bracket-container" id="prikaz-kostur-nokaut">
+                    <!-- Dinamički se popunjava preko JS-a -->
+                </div>
             </div>
         </div>
     </div>
@@ -665,15 +776,15 @@
 
     // Struktura Parova Nokaut Faze
     const nokautParoviSabloni = {
-        PO1: { domacin: "AgroPavkov", gost: "Crnotravac", naziv: "Baraž PO1" },
-        PO2: { domacin: "Metropola", gost: "KDK Gips", naziv: "Baraž PO2" },
-        PO3: { domacin: "Dacini Sinovi", gost: "7 i po igraca", naziv: "Baraž PO3" },
-        PO4: { domacin: "Suvi plic 3", gost: "Boca Juniors", naziv: "Baraž PO4" },
+        PO1: { domacin: "AGROPAVKOV", gost: "CRNOTRAVAC", naziv: "Baraž PO1" },
+        PO2: { domacin: "METROPOLA", gost: "KDK GIPS", naziv: "Baraž PO2" },
+        PO3: { domacin: "DACINI SINOVI", gost: "7 I PO IGRAČA", naziv: "Baraž PO3" },
+        PO4: { domacin: "SUVI PLIČ 3", gost: "BOCA JUNIORS", naziv: "Baraž PO4" },
 
-        QF1: { domacin: "Carina Brothers", gostIz: "PO1", naziv: "Četvrtfinale QF1" },
-        QF2: { domacin: "Farma Varga", gostIz: "PO2", naziv: "Četvrtfinale QF2" },
-        QF3: { domacin: "Kiseli Krastavci", gostIz: "PO3", naziv: "Četvrtfinale QF3" },
-        QF4: { domacin: "Kod Silvane", gostIz: "PO4", naziv: "Četvrtfinale QF4" },
+        QF1: { domacin: "CARINA BROTHERS", gostIz: "PO1", naziv: "Četvrtfinale QF1" },
+        QF2: { domacin: "FARMA VARGA", gostIz: "PO2", naziv: "Četvrtfinale QF2" },
+        QF3: { domacin: "KISELI KRASTAVCI", gostIz: "PO3", naziv: "Četvrtfinale QF3" },
+        QF4: { domacin: "KOD SILVANE", gostIz: "PO4", naziv: "Četvrtfinale QF4" },
 
         SF1: { domacinIz: "QF1", gostIz: "QF2", naziv: "Polufinale SF1" },
         SF2: { domacinIz: "QF3", gostIz: "QF4", naziv: "Polufinale SF2" },
@@ -1017,22 +1128,21 @@
 
             return { domacin: d, gost: g, naziv: sablon.naziv };
         }
-        return { domacin: "???", gost: "???", naziv: kod };
+        return { domacin: "", gost: "", naziv: kod };
     }
 
     function odrediPobednikaMeca(kodMeca) {
         const mec = utakmice.find(u => u.nokautKod === kodMeca);
-        if(!mec) return "Pobednik " + kodMeca;
+        if(!mec) return "";
         if(mec.goloviD > mec.goloviG) return mec.domacin;
         if(mec.goloviG > mec.goloviD) return mec.gost;
         
-        // Ako je nerešeno npr. na penale, pobednik se gleda po broju ostavljenih strelaca
         const dCount = (mec.strelciDomacin || []).filter(s => s !== "/").length;
         const gCount = (mec.strelciGost || []).filter(s => s !== "/").length;
         if(dCount > gCount) return mec.domacin;
         if(gCount > dCount) return mec.gost;
 
-        return mec.domacin; // Fallback
+        return mec.domacin;
     }
 
     function promenaNokautMeca() {
@@ -1044,11 +1154,10 @@
         }
 
         const par = odrediTimZaNokautKod(kod);
-        document.getElementById('nokaut-prikaz-par').textContent = `${par.domacin} VS ${par.gost}`;
-        document.getElementById('lbl-nk-domacin').textContent = `Golovi (${par.domacin}):`;
-        document.getElementById('lbl-nk-gost').textContent = `Golovi (${par.gost}):`;
+        document.getElementById('nokaut-prikaz-par').textContent = `${par.domacin || '???'} VS ${par.gost || '???'}`;
+        document.getElementById('lbl-nk-domacin').textContent = `Golovi (${par.domacin || 'Domaćin'}):`;
+        document.getElementById('lbl-nk-gost').textContent = `Golovi (${par.gost || 'Gost'}):`;
 
-        // Provera da li već postoji odigran
         const postojeci = utakmice.find(u => u.nokautKod === kod);
         if(postojeci) {
             document.getElementById('nokaut-golovi-d').value = postojeci.goloviD;
@@ -1114,7 +1223,7 @@
         if(!kod) return;
 
         const par = odrediTimZaNokautKod(kod);
-        if(par.domacin.startsWith("Pobednik") || par.gost.startsWith("Pobednik")) {
+        if(!par.domacin || !par.gost) {
             alert("Nisu poznate obe ekipe za ovaj meč! Prvo odigrajte prethodnu fazu.");
             return;
         }
@@ -1128,7 +1237,6 @@
         const strelciG = [];
         document.querySelectorAll('.nk-select-g').forEach(s => strelciG.push(s.value || "/"));
 
-        // Ukloni stari ako postoji
         utakmice = utakmice.filter(u => u.nokautKod !== kod);
 
         const mec = {
@@ -1152,34 +1260,47 @@
         await sacuvajUCloud();
     }
 
+    /* VIZUELNO GENERISANJE NOKAUT FAZE */
     function renderujNokautFazuKostur() {
         const kontejner = document.getElementById('prikaz-kostur-nokaut');
         if(!kontejner) return;
-        kontejner.innerHTML = '';
-
-        const redosled = ['PO1','PO2','PO3','PO4','QF1','QF2','QF3','QF4','SF1','SF2','F1'];
         
+        const struktura = [
+            { naslov: 'DOIGRAVANJE', mecevi: ['PO1', 'PO2', 'PO3', 'PO4'] },
+            { naslov: '¼ FINALE', mecevi: ['QF1', 'QF2', 'QF3', 'QF4'] },
+            { naslov: '½ FINALE', mecevi: ['SF1', 'SF2'] },
+            { naslov: 'FINALE', mecevi: ['F1'] }
+        ];
+
         let html = '';
-        redosled.forEach(kod => {
-            const par = odrediTimZaNokautKod(kod);
-            const mec = utakmice.find(u => u.nokautKod === kod);
 
-            let rezultatTekst = "Nije odigrano";
-            let stil = "border-left: 4px solid #ccc;";
-            if(mec) {
-                rezultatTekst = `<b>${mec.goloviD} : ${mec.goloviG}</b> (Pobednik: ${odrediPobednikaMeca(kod)})`;
-                stil = "border-left: 4px solid var(--green-success);";
-            }
+        struktura.forEach(kolona => {
+            html += `<div class="bracket-column"><div class="col-title">${kolona.naslov}</div>`;
+            
+            kolona.mecevi.forEach(kod => {
+                const par = odrediTimZaNokautKod(kod);
+                const mec = utakmice.find(u => u.nokautKod === kod);
+                
+                let winner = odrediPobednikaMeca(kod);
+                
+                let scoreD = mec ? mec.goloviD : '';
+                let scoreG = mec ? mec.goloviG : '';
 
-            html += `
-                <div class="match-card" style="${stil}">
-                    <div style="font-size:12px; font-weight:bold; color:#777; margin-bottom:4px;">${par.naziv}</div>
-                    <div style="display:flex; justify-content:space-between; align-items:center;">
-                        <div style="font-size:15px; font-weight:bold;">${par.domacin} vs ${par.gost}</div>
-                        <div style="font-size:14px;">${rezultatTekst}</div>
+                html += `
+                    <div class="bracket-match">
+                        <div class="bracket-team ${winner && winner === par.domacin ? 'winner' : ''}">
+                            <span>${par.domacin || ''}</span>
+                            ${scoreD !== '' ? `<span class="score">${scoreD}</span>` : ''}
+                        </div>
+                        <div class="bracket-team ${winner && winner === par.gost ? 'winner' : ''}">
+                            <span>${par.gost || ''}</span>
+                            ${scoreG !== '' ? `<span class="score">${scoreG}</span>` : ''}
+                        </div>
                     </div>
-                </div>
-            `;
+                `;
+            });
+
+            html += `</div>`;
         });
 
         kontejner.innerHTML = html;
