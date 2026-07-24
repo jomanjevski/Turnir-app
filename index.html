@@ -1742,12 +1742,12 @@
         if(!kontejner) return;
         kontejner.innerHTML = '';
         
-        // Fiksirani parovi doigravanja sa tvoje slike
+        // Ažurirani parovi doigravanja (baraža)
         const parovi = [
             { oznaka: "PO1", dom: "AGROPAVKOV", gos: "CRNOTRAVAC", opis: "Baraž 1" },
             { oznaka: "PO2", dom: "METROPOLA", gos: "KDK GIPS", opis: "Baraž 2" },
-            { oznaka: "PO3", dom: "DACINI SINOVI", gos: "7 I PO IGRAČA", opis: "Baraž 3" },
-            { oznaka: "PO4", dom: "SUVI PLIČ 3", gos: "BOCA JUNIORS", opis: "Baraž 4" }
+            { oznaka: "PO3", dom: "DAČINI SINOVI", gos: "7 I PO IGRAČA", opis: "Baraž 3" },
+            { oznaka: "PO4", dom: "SUVI PLIĆ 3", gos: "BOCA JUNIORS", opis: "Baraž 4" }
         ];
         
         parovi.forEach(p => {
@@ -1766,9 +1766,9 @@
         const pobednikPO3 = koJePobednik("Doigravanje", "PO3");
         const pobednikPO4 = koJePobednik("Doigravanje", "PO4");
         
-        // Fiksirani nosioci ¼ finala sa tvoje slike
+        // Ažurirani nosioci ¼ finala i ukrštanje sa pobednicima baraža
         const parovi = [
-            { oznaka: "QF1", dom: "CARINA BROTHERS", gos: pobednikPO1, opis: "1/4 Finale 1" },
+            { oznaka: "QF1", dom: "CARINA", gos: pobednikPO1, opis: "1/4 Finale 1" },
             { oznaka: "QF2", dom: "FARMA VARGA", gos: pobednikPO2, opis: "1/4 Finale 2" },
             { oznaka: "QF3", dom: "KISELI KRASTAVCI", gos: pobednikPO3, opis: "1/4 Finale 3" },
             { oznaka: "QF4", dom: "KOD SILVANE", gos: pobednikPO4, opis: "1/4 Finale 4" }
