@@ -1529,62 +1529,79 @@
     }
 
     function renderujZlatnuKopacku() {
-        const tbody = document.getElementById('lista-svih-strelaca-body');
-        if(!tbody) return;
-        tbody.innerHTML = '';
-        
-        const goloviMape = {};
-        const ekipaMapeIgraca = {};
-        
-        Object.keys(igraciPoEkipama).forEach(ekIme => {
-            const listaIgr = nadjiIgraceZaEkipu(ekIme);
-            listaIgr.forEach(ig => {
+    const tbody = document.getElementById('lista-svih-strelaca-body');
+    if (!tbody) return;
+    tbody.innerHTML = '';
+    
+    const goloviMape = {};
+    const ekipaMapeIgraca = {};
+    
+    // 1. Inicijalizacija svih igrača iz rostera
+    Object.keys(igraciPoEkipama).forEach(ekIme => {
+        const listaIgr = nadjiIgraceZaEkipu(ekIme);
+        listaIgr.forEach(ig => {
+            if (ig && ig !== "/") {
                 goloviMape[ig] = 0;
                 ekipaMapeIgraca[ig] = ekIme;
-            });
-        });
-        
-        utakmice.forEach(u => {
-            const sviMojiStrelci = [...(u.strelciDomacin || []), ...(u.strelciGost || [])];
-            sviMojiStrelci.forEach(s => {
-                if (s === "/") return;
-                if(goloviMape[s] !== undefined) goloviMape[s]++;
-                else {
-                    goloviMape[s] = 1;
-                    if(!ekipaMapeIgraca[s]) {
-                        if(u.strelciDomacin && u.strelciDomacin.includes(s)) ekipaMapeIgraca[s] = u.domacin;
-                        else ekipaMapeIgraca[s] = u.gost;
-                    }
-                }
-            });
-        });
-        
-        let nizStrelaca = [];
-        Object.keys(goloviMape).forEach(ime => {
-            if(goloviMape[ime] > 0) {
-                nizStrelaca.push({ ime: ime, ekipa: ekipaMapeIgraca[ime] || 'Nepoznato', golovi: goloviMape[ime] });
             }
         });
-        
-        nizStrelaca.sort((a,b) => b.golovi - a.golovi);
-        
-        if(nizStrelaca.length === 0) {
-            tbody.innerHTML = `<tr><td colspan="4" style="text-align:center; color:#888;">Još uvek nema postignutih golova.</td></tr>`;
-            return;
-        }
-        
-        nizStrelaca.forEach((st, idx) => {
-            const tr = document.createElement('tr');
-            let medalja = idx === 0 ? "🥇 " : (idx === 1 ? "🥈 " : (idx === 2 ? "🥉 " : ""));
-            tr.innerHTML = `
-                <td style="text-align:center; font-weight:bold;">${idx+1}.</td>
-                <td><strong>${medalja}${st.ime}</strong></td>
-                <td><span class="link-ekipa" onclick="otvoriProfil('${st.ekipa}')">${st.ekipa}</span></td>
-                <td style="text-align:center; font-weight:bold; color:var(--primary-blue); font-size:16px;">${st.golovi}</td>
-            `;
-            tbody.appendChild(tr);
+    });
+    
+    // 2. Prebrojavanje golova sa svih utakmica (Grupna + Nokaut faza)
+    utakmice.forEach(u => {
+        // Obrađujemo domaće strelce
+        (u.strelciDomacin || []).forEach(s => {
+            if (s && s !== "/" && s !== "-- Nepoznat / Prazno --") {
+                goloviMape[s] = (goloviMape[s] || 0) + 1;
+                if (!ekipaMapeIgraca[s]) {
+                    ekipaMapeIgraca[s] = u.domacin;
+                }
+            }
         });
+
+        // Obrađujemo gostujuće strelce
+        (u.strelciGost || []).forEach(s => {
+            if (s && s !== "/" && s !== "-- Nepoznat / Prazno --") {
+                goloviMape[s] = (goloviMape[s] || 0) + 1;
+                if (!ekipaMapeIgraca[s]) {
+                    ekipaMapeIgraca[s] = u.gost;
+                }
+            }
+        });
+    });
+    
+    // 3. Pakovanje u niz i sortiranje
+    let nizStrelaca = [];
+    Object.keys(goloviMape).forEach(ime => {
+        if (goloviMape[ime] > 0) {
+            nizStrelaca.push({ 
+                ime: ime, 
+                ekipa: ekipaMapeIgraca[ime] || 'Nepoznato', 
+                golovi: goloviMape[ime] 
+            });
+        }
+    });
+    
+    nizStrelaca.sort((a, b) => b.golovi - a.golovi);
+    
+    if (nizStrelaca.length === 0) {
+        tbody.innerHTML = `<tr><td colspan="4" style="text-align:center; color:#888;">Još uvek nema postignutih golova.</td></tr>`;
+        return;
     }
+    
+    // 4. Prikaz na tabeli
+    nizStrelaca.forEach((st, idx) => {
+        const tr = document.createElement('tr');
+        let medalja = idx === 0 ? "🥇 " : (idx === 1 ? "🥈 " : (idx === 2 ? "🥉 " : ""));
+        tr.innerHTML = `
+            <td style="text-align:center; font-weight:bold;">${idx + 1}.</td>
+            <td><strong>${medalja}${st.ime}</strong></td>
+            <td><span class="link-ekipa" onclick="otvoriProfil('${st.ekipa}')">${st.ekipa}</span></td>
+            <td style="text-align:center; font-weight:bold; color:var(--primary-blue); font-size:16px;">${st.golovi}</td>
+        `;
+        tbody.appendChild(tr);
+    });
+}
 
     function renderujIgraceUProfilu(goloviMape) {
         const tbody = document.getElementById('lista-igraca-body');
