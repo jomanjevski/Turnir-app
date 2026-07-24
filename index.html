@@ -1536,41 +1536,39 @@
     const goloviMape = {};
     const ekipaMapeIgraca = {};
     
-    // 1. Inicijalizacija svih igrača iz rostera
+    // 1. Prikupi sve igrače iz svih rostera
     Object.keys(igraciPoEkipama).forEach(ekIme => {
         const listaIgr = nadjiIgraceZaEkipu(ekIme);
         listaIgr.forEach(ig => {
             if (ig && ig !== "/") {
                 goloviMape[ig] = 0;
-                ekipaMapeIgraca[ig] = ekIme;
+                ekipaMapeIgraca[ig] = ekIme; // pamti ekipu za igrača
             }
         });
     });
     
-    // 2. Prebrojavanje golova sa svih utakmica (Grupna + Nokaut faza)
+    // 2. Prebroj sve golove iz svih odigranih utakmica
     utakmice.forEach(u => {
-        // Obrađujemo domaće strelce
-        (u.strelciDomacin || []).forEach(s => {
-            if (s && s !== "/" && s !== "-- Nepoznat / Prazno --") {
-                goloviMape[s] = (goloviMape[s] || 0) + 1;
-                if (!ekipaMapeIgraca[s]) {
-                    ekipaMapeIgraca[s] = u.domacin;
-                }
-            }
-        });
+        const sviStrelci = [
+            ...(u.strelciDomacin || []), 
+            ...(u.strelciGost || [])
+        ];
 
-        // Obrađujemo gostujuće strelce
-        (u.strelciGost || []).forEach(s => {
+        sviStrelci.forEach(s => {
             if (s && s !== "/" && s !== "-- Nepoznat / Prazno --") {
+                // Ako igrač već postoji ili se prvi put pojavljuje
                 goloviMape[s] = (goloviMape[s] || 0) + 1;
+
+                // Ako igraču nije dodeljena ekipa, dodeli mu ekipu iz te utakmice
                 if (!ekipaMapeIgraca[s]) {
-                    ekipaMapeIgraca[s] = u.gost;
+                    const jeDomacin = (u.strelciDomacin || []).includes(s);
+                    ekipaMapeIgraca[s] = jeDomacin ? u.domacin : u.gost;
                 }
             }
         });
     });
     
-    // 3. Pakovanje u niz i sortiranje
+    // 3. Formiraj niz za tabelu
     let nizStrelaca = [];
     Object.keys(goloviMape).forEach(ime => {
         if (goloviMape[ime] > 0) {
@@ -1582,6 +1580,7 @@
         }
     });
     
+    // 4. Sortiraj po broju golova
     nizStrelaca.sort((a, b) => b.golovi - a.golovi);
     
     if (nizStrelaca.length === 0) {
@@ -1589,7 +1588,7 @@
         return;
     }
     
-    // 4. Prikaz na tabeli
+    // 5. Renderuj u tabelu
     nizStrelaca.forEach((st, idx) => {
         const tr = document.createElement('tr');
         let medalja = idx === 0 ? "🥇 " : (idx === 1 ? "🥈 " : (idx === 2 ? "🥉 " : ""));
