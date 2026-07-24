@@ -288,6 +288,7 @@
         <button class="tab-btn active" onclick="switchTab(event, 'ekipe')">Ekipe i Kotizacije</button>
         <button class="tab-btn" onclick="switchTab(event, 'tabela-tab')">Tabela Turnira</button>
         <button class="tab-btn" onclick="switchTab(event, 'utakmice')">Utakmice i Rezultati</button>
+        <button class="tab-btn" onclick="switchTab(event, 'nokaut-tab')">🏆 Nokaut Faza</button>
         <button class="tab-btn" onclick="switchTab(event, 'strelci-tab')">Lista Strelaca</button>
         <button class="tab-btn" onclick="switchTab(event, 'kasa')">Kasa (Zarada/Pazar)</button>
         <button class="tab-btn" onclick="switchTab(event, 'dodatni-prihodi-tab')">Dodatni Prihodi</button>
@@ -344,7 +345,7 @@
     <div id="utakmice" class="tab-content">
         <div class="grid-2col">
             <div>
-                <h2>Unos Rezultata i Strelaca</h2>
+                <h2>Unos Rezultata (Grupna Faza)</h2>
                 <div class="form-panel" style="margin-top: 15px;">
                     <form id="utakmica-form" onsubmit="dodajUtakmicu(event)">
                         <div class="form-group">
@@ -383,6 +384,76 @@
             <div>
                 <h2>Odigrani Mečevi</h2>
                 <div id="lista-utakmica" style="margin-top: 15px;"></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- TABS: NOKAUT FAZA -->
+    <div id="nokaut-tab" class="tab-content">
+        <div class="grid-2col">
+            <div>
+                <h2>Unos Rezultata Nokaut Faze</h2>
+                <div class="form-panel" style="margin-top: 15px;">
+                    <form id="nokaut-form" onsubmit="sacuvajNokautUtakmicu(event)">
+                        <div class="form-group">
+                            <label for="nokaut-izbor-meca">Izaberi utakmicu:</label>
+                            <select id="nokaut-izbor-meca" onchange="promenaNokautMeca()" required>
+                                <option value="">-- Izaberi meč --</option>
+                                <optgroup label="Baraž (Play-Off)">
+                                    <option value="PO1">PO1: AgroPavkov vs Crnotravac</option>
+                                    <option value="PO2">PO2: Metropola vs KDK Gips</option>
+                                    <option value="PO3">PO3: Dacini Sinovi vs 7 i po igraca</option>
+                                    <option value="PO4">PO4: Suvi plic 3 vs Boca Juniors</option>
+                                </optgroup>
+                                <optgroup label="Četvrtfinale (QF)">
+                                    <option value="QF1">QF1: Carina Brothers vs Pobednik PO1</option>
+                                    <option value="QF2">QF2: Farma Varga vs Pobednik PO2</option>
+                                    <option value="QF3">QF3: Kiseli Krastavci vs Pobednik PO3</option>
+                                    <option value="QF4">QF4: Kod Silvane vs Pobednik PO4</option>
+                                </optgroup>
+                                <optgroup label="Polufinale (SF)">
+                                    <option value="SF1">SF1: Pobednik QF1 vs Pobednik QF2</option>
+                                    <option value="SF2">SF2: Pobednik QF3 vs Pobednik QF4</option>
+                                </optgroup>
+                                <optgroup label="Finale (F)">
+                                    <option value="F1">F1: Pobednik SF1 vs Pobednik SF2</option>
+                                </optgroup>
+                            </select>
+                        </div>
+
+                        <div id="nokaut-akcija-kontejner" style="display:none;">
+                            <div style="background:#fff; padding:12px; border-radius:5px; border:1px solid #ccc; margin-bottom:15px;">
+                                <h3 id="nokaut-prikaz-par" style="color:var(--primary-blue); text-align:center; font-size:18px;">- vs -</h3>
+                            </div>
+                            <div class="form-group">
+                                <div class="form-row-inline">
+                                    <div>
+                                        <label id="lbl-nk-domacin">Golovi Domaćin:</label>
+                                        <input type="number" id="nokaut-golovi-d" min="0" value="0" oninput="generisiStrelceNokaut()" required>
+                                    </div>
+                                    <div>
+                                        <label id="lbl-nk-gost">Golovi Gost:</label>
+                                        <input type="number" id="nokaut-golovi-g" min="0" value="0" oninput="generisiStrelceNokaut()" required>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <p style="font-size:12px; color:#888; margin-bottom:10px;">* Kod nerešenog rezultata u nokaut fazi, tim koji ima više unetih strelaca/penala smatra se pobednikom i prolazi dalje.</p>
+
+                            <div id="nokaut-kontejner-strelci" class="inputs-strelci-kontejner">
+                                <h4 style="margin-bottom:8px; font-size:14px;">Izaberite strelce golova / penala:</h4>
+                                <div id="nokaut-strelci-domaci"></div>
+                                <div id="nokaut-strelci-gost" style="margin-top:10px;"></div>
+                            </div>
+
+                            <button type="submit" class="btn-submit" style="width: 100%; margin-top: 15px;">Sačuvaj Nokaut Meč</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+            <div>
+                <h2>Kostur Nokaut Faze</h2>
+                <div id="prikaz-kostur-nokaut" style="margin-top:15px;"></div>
             </div>
         </div>
     </div>
@@ -592,6 +663,24 @@
     
     let poredakPoGrupama = { A: [], B: [] };
 
+    // Struktura Parova Nokaut Faze
+    const nokautParoviSabloni = {
+        PO1: { domacin: "AgroPavkov", gost: "Crnotravac", naziv: "Baraž PO1" },
+        PO2: { domacin: "Metropola", gost: "KDK Gips", naziv: "Baraž PO2" },
+        PO3: { domacin: "Dacini Sinovi", gost: "7 i po igraca", naziv: "Baraž PO3" },
+        PO4: { domacin: "Suvi plic 3", gost: "Boca Juniors", naziv: "Baraž PO4" },
+
+        QF1: { domacin: "Carina Brothers", gostIz: "PO1", naziv: "Četvrtfinale QF1" },
+        QF2: { domacin: "Farma Varga", gostIz: "PO2", naziv: "Četvrtfinale QF2" },
+        QF3: { domacin: "Kiseli Krastavci", gostIz: "PO3", naziv: "Četvrtfinale QF3" },
+        QF4: { domacin: "Kod Silvane", gostIz: "PO4", naziv: "Četvrtfinale QF4" },
+
+        SF1: { domacinIz: "QF1", gostIz: "QF2", naziv: "Polufinale SF1" },
+        SF2: { domacinIz: "QF3", gostIz: "QF4", naziv: "Polufinale SF2" },
+
+        F1: { domacinIz: "SF1", gostIz: "SF2", naziv: "VELIKO FINALE F1" }
+    };
+
     const danasnjiDatum = new Date().toISOString().split('T')[0];
     if(document.getElementById('pazar-datum')) document.getElementById('pazar-datum').value = danasnjiDatum;
     if(document.getElementById('prihod-datum')) document.getElementById('prihod-datum').value = danasnjiDatum;
@@ -656,6 +745,7 @@
 
     function osveziSveEkrane() {
         osveziSportskiDeo();
+        renderujNokautFazuKostur();
         renderujZlatnuKopacku();
         renderujPazareKase();
         renderujDodatnePrihode();
@@ -913,6 +1003,186 @@
         
         osveziSveEkrane();
         await sacuvajUCloud();
+    }
+
+    // LOGIKA I ENGINE ZA NOKAUT FAZU
+    function odrediTimZaNokautKod(kod) {
+        if(nokautParoviSabloni[kod]) {
+            const sablon = nokautParoviSabloni[kod];
+            let d = sablon.domacin || "";
+            let g = sablon.gost || "";
+
+            if(sablon.domacinIz) d = odrediPobednikaMeca(sablon.domacinIz);
+            if(sablon.gostIz) g = odrediPobednikaMeca(sablon.gostIz);
+
+            return { domacin: d, gost: g, naziv: sablon.naziv };
+        }
+        return { domacin: "???", gost: "???", naziv: kod };
+    }
+
+    function odrediPobednikaMeca(kodMeca) {
+        const mec = utakmice.find(u => u.nokautKod === kodMeca);
+        if(!mec) return "Pobednik " + kodMeca;
+        if(mec.goloviD > mec.goloviG) return mec.domacin;
+        if(mec.goloviG > mec.goloviD) return mec.gost;
+        
+        // Ako je nerešeno npr. na penale, pobednik se gleda po broju ostavljenih strelaca
+        const dCount = (mec.strelciDomacin || []).filter(s => s !== "/").length;
+        const gCount = (mec.strelciGost || []).filter(s => s !== "/").length;
+        if(dCount > gCount) return mec.domacin;
+        if(gCount > dCount) return mec.gost;
+
+        return mec.domacin; // Fallback
+    }
+
+    function promenaNokautMeca() {
+        const kod = document.getElementById('nokaut-izbor-meca').value;
+        const kontejner = document.getElementById('nokaut-akcija-kontejner');
+        if(!kod) {
+            kontejner.style.display = 'none';
+            return;
+        }
+
+        const par = odrediTimZaNokautKod(kod);
+        document.getElementById('nokaut-prikaz-par').textContent = `${par.domacin} VS ${par.gost}`;
+        document.getElementById('lbl-nk-domacin').textContent = `Golovi (${par.domacin}):`;
+        document.getElementById('lbl-nk-gost').textContent = `Golovi (${par.gost}):`;
+
+        // Provera da li već postoji odigran
+        const postojeci = utakmice.find(u => u.nokautKod === kod);
+        if(postojeci) {
+            document.getElementById('nokaut-golovi-d').value = postojeci.goloviD;
+            document.getElementById('nokaut-golovi-g').value = postojeci.goloviG;
+        } else {
+            document.getElementById('nokaut-golovi-d').value = 0;
+            document.getElementById('nokaut-golovi-g').value = 0;
+        }
+
+        kontejner.style.display = 'block';
+        generisiStrelceNokaut();
+    }
+
+    function generisiStrelceNokaut() {
+        const kod = document.getElementById('nokaut-izbor-meca').value;
+        if(!kod) return;
+
+        const par = odrediTimZaNokautKod(kod);
+        const golD = parseInt(document.getElementById('nokaut-golovi-d').value) || 0;
+        const golG = parseInt(document.getElementById('nokaut-golovi-g').value) || 0;
+
+        const dDiv = document.getElementById('nokaut-strelci-domaci');
+        const gDiv = document.getElementById('nokaut-strelci-gost');
+        const kontejner = document.getElementById('nokaut-kontejner-strelci');
+
+        dDiv.innerHTML = '';
+        gDiv.innerHTML = '';
+
+        if(golD === 0 && golG === 0) {
+            kontejner.style.display = 'none';
+            return;
+        }
+
+        kontejner.style.display = 'block';
+
+        const igrD = igraciPoEkipama[par.domacin] || [];
+        const igrG = igraciPoEkipama[par.gost] || [];
+
+        let optD = `<option value="">-- Nepoznat / Prazno --</option>`;
+        igrD.forEach(ig => optD += `<option value="${ig}">${ig}</option>`);
+
+        let optG = `<option value="">-- Nepoznat / Prazno --</option>`;
+        igrG.forEach(ig => optG += `<option value="${ig}">${ig}</option>`);
+
+        if(golD > 0) {
+            dDiv.innerHTML = `<p style="font-weight:bold; font-size:13px; color:var(--primary-blue);">${par.domacin}:</p>`;
+            for(let i = 0; i < golD; i++) {
+                dDiv.innerHTML += `<div class="strelac-input-row"><span style="font-size:12px; min-width:50px;">${i+1}. gol:</span><select class="nk-select-d">${optD}</select></div>`;
+            }
+        }
+
+        if(golG > 0) {
+            gDiv.innerHTML = `<p style="font-weight:bold; font-size:13px; color:var(--red-danger);">${par.gost}:</p>`;
+            for(let i = 0; i < golG; i++) {
+                gDiv.innerHTML += `<div class="strelac-input-row"><span style="font-size:12px; min-width:50px;">${i+1}. gol:</span><select class="nk-select-g">${optG}</select></div>`;
+            }
+        }
+    }
+
+    async function sacuvajNokautUtakmicu(e) {
+        e.preventDefault();
+        const kod = document.getElementById('nokaut-izbor-meca').value;
+        if(!kod) return;
+
+        const par = odrediTimZaNokautKod(kod);
+        if(par.domacin.startsWith("Pobednik") || par.gost.startsWith("Pobednik")) {
+            alert("Nisu poznate obe ekipe za ovaj meč! Prvo odigrajte prethodnu fazu.");
+            return;
+        }
+
+        const golD = parseInt(document.getElementById('nokaut-golovi-d').value) || 0;
+        const golG = parseInt(document.getElementById('nokaut-golovi-g').value) || 0;
+
+        const strelciD = [];
+        document.querySelectorAll('.nk-select-d').forEach(s => strelciD.push(s.value || "/"));
+
+        const strelciG = [];
+        document.querySelectorAll('.nk-select-g').forEach(s => strelciG.push(s.value || "/"));
+
+        // Ukloni stari ako postoji
+        utakmice = utakmice.filter(u => u.nokautKod !== kod);
+
+        const mec = {
+            id: Date.now(),
+            nokautKod: kod,
+            domacin: par.domacin,
+            gost: par.gost,
+            goloviD: golD,
+            goloviG: golG,
+            strelciDomacin: strelciD,
+            strelciGost: strelciG,
+            faza: par.naziv
+        };
+
+        utakmice.push(mec);
+        document.getElementById('nokaut-izbor-meca').value = "";
+        document.getElementById('nokaut-akcija-kontejner').style.display = "none";
+
+        alert(`Sačuvan rezultat za: ${par.naziv}`);
+        osveziSveEkrane();
+        await sacuvajUCloud();
+    }
+
+    function renderujNokautFazuKostur() {
+        const kontejner = document.getElementById('prikaz-kostur-nokaut');
+        if(!kontejner) return;
+        kontejner.innerHTML = '';
+
+        const redosled = ['PO1','PO2','PO3','PO4','QF1','QF2','QF3','QF4','SF1','SF2','F1'];
+        
+        let html = '';
+        redosled.forEach(kod => {
+            const par = odrediTimZaNokautKod(kod);
+            const mec = utakmice.find(u => u.nokautKod === kod);
+
+            let rezultatTekst = "Nije odigrano";
+            let stil = "border-left: 4px solid #ccc;";
+            if(mec) {
+                rezultatTekst = `<b>${mec.goloviD} : ${mec.goloviG}</b> (Pobednik: ${odrediPobednikaMeca(kod)})`;
+                stil = "border-left: 4px solid var(--green-success);";
+            }
+
+            html += `
+                <div class="match-card" style="${stil}">
+                    <div style="font-size:12px; font-weight:bold; color:#777; margin-bottom:4px;">${par.naziv}</div>
+                    <div style="display:flex; justify-content:space-between; align-items:center;">
+                        <div style="font-size:15px; font-weight:bold;">${par.domacin} vs ${par.gost}</div>
+                        <div style="font-size:14px;">${rezultatTekst}</div>
+                    </div>
+                </div>
+            `;
+        });
+
+        kontejner.innerHTML = html;
     }
 
     async function obrisiUtakmicu(id) {
