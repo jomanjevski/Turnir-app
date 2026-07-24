@@ -331,6 +331,8 @@
         padding: 4px;
         font-size: 12px;
         font-weight: bold;
+        background-color: #e9ecef;
+        cursor: not-allowed;
     }
 
     .bracket-team-row.winner {
@@ -801,7 +803,7 @@
         }
     }
 
-    // Automatsko ugradjivanje pocetnih parova
+    // Automatsko postavljanje zadatih parova u nokaut fazi
     function inicijalizujNokautKostur() {
         const pocetnePostavke = [
             { faza: 'Doigravanje', oznaka: 'PO1', dom: 'AgroPavkov', gos: 'Crnotravac' },
@@ -830,8 +832,9 @@
                     nokautOznaka: item.oznaka
                 });
             } else {
-                if(!mec.domacin && item.dom) mec.domacin = item.dom;
-                if(!mec.gost && item.gos) mec.gost = item.gos;
+                // Osigurava da se vaši parovi uvek prenesu ako polje nije definisano
+                if(item.dom) mec.domacin = item.dom;
+                if(item.gos && !mec.gost) mec.gost = item.gos;
             }
         });
     }
@@ -1669,34 +1672,6 @@
         box.innerHTML = html;
     }
 
-    async function promeneNokautEkipe(faza, oznaka) {
-        const dom = document.getElementById(`select-${oznaka}-d`).value;
-        const gos = document.getElementById(`select-${oznaka}-g`).value;
-
-        let mec = utakmice.find(u => u.faza === faza && u.nokautOznaka === oznaka);
-        
-        if(!mec) {
-            mec = {
-                id: Date.now() + Math.floor(Math.random()*1000),
-                domacin: dom,
-                gost: gos,
-                goloviD: 0,
-                goloviG: 0,
-                strelciDomacin: [],
-                strelciGost: [],
-                faza: faza,
-                nokautOznaka: oznaka
-            };
-            utakmice.push(mec);
-        } else {
-            mec.domacin = dom;
-            mec.gost = gos;
-        }
-
-        osveziSveEkrane();
-        await sacuvajUCloud();
-    }
-
     // AUTOMATSKO PROSLEDJIVANJE POBEDNIKA KROZ MREŽU
     async function sacuvajNokautRezultat(faza, oznaka) {
         let mec = utakmice.find(u => u.faza === faza && u.nokautOznaka === oznaka);
@@ -1705,6 +1680,11 @@
         const gDom = parseInt(document.getElementById(`input-${oznaka}-d`).value) || 0;
         const gGos = parseInt(document.getElementById(`input-${oznaka}-g`).value) || 0;
         
+        if(!mec.domacin || !mec.gost) {
+            alert("Čeka se ishod prethodnog meča pre unosa rezultata!");
+            return;
+        }
+
         if(gDom === gGos) {
             alert("U nokaut fazi meč ne može završiti nerešeno! Upišite konačan rezultat nakon produžetaka/penala.");
             return;
@@ -1782,13 +1762,10 @@
     }
 
     function kreirajOpcijeZaEkipe(izabranaEkipa) {
-        let optHtml = `<option value="">-- Izaberi tim --</option>`;
-        const sortirane = [...ekipe].sort((a,b) => a.localeCompare(b));
-        sortirane.forEach(ek => {
-            let sel = (ek === izabranaEkipa) ? 'selected' : '';
-            optHtml += `<option value="${ek}" ${sel}>${ek}</option>`;
-        });
-        return optHtml;
+        if (!izabranaEkipa) {
+            return `<option value="">-- Čeka se pobednik --</option>`;
+        }
+        return `<option value="${izabranaEkipa}" selected>${izabranaEkipa}</option>`;
     }
 
     function kreirajBracketKarticu(faza, oznaka, opis, isFinale = false) {
@@ -1806,13 +1783,13 @@
         
         cardHtml += `
             <div class="bracket-team-row ${isWinnerDom ? 'winner' : ''}">
-                <select id="select-${oznaka}-d" onchange="promeneNokautEkipe('${faza}', '${oznaka}')">
+                <select id="select-${oznaka}-d" disabled>
                     ${kreirajOpcijeZaEkipe(domacin)}
                 </select>
                 <input type="number" id="input-${oznaka}-d" min="0" value="${golD}" oninput="azurirjStrelceUMecuNokauta('${oznaka}')">
             </div>
             <div class="bracket-team-row ${isWinnerGos ? 'winner' : ''}">
-                <select id="select-${oznaka}-g" onchange="promeneNokautEkipe('${faza}', '${oznaka}')">
+                <select id="select-${oznaka}-g" disabled>
                     ${kreirajOpcijeZaEkipe(gost)}
                 </select>
                 <input type="number" id="input-${oznaka}-g" min="0" value="${golG}" oninput="azurirjStrelceUMecuNokauta('${oznaka}')">
