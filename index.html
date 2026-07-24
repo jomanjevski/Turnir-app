@@ -511,7 +511,7 @@
 
     <div id="nokaut-tab" class="tab-content">
         <h2>Kostur Nokaut Faze Takmičenja</h2>
-        <p style="font-size: 14px; color: #666; margin-bottom: 15px;">Ručno izaberite parove za svaku utakmicu, unesite rezultate i strelce.</p>
+        <p style="font-size: 14px; color: #666; margin-bottom: 15px;">Pobednici mečeva se automatski prebacuju u sledeće kolo!</p>
         
         <!-- HORIZONTALNI BRACKET KONTEJNER -->
         <div class="tournament-container">
@@ -748,6 +748,22 @@
     
     let poredakPoGrupama = { A: [], B: [] };
 
+    // Mreža napredovanja u nokaut fazi
+    const MREZA_TURNIRA = {
+        'PO1': { faza: 'Doigravanje', sledeciMec: 'QF1', fazaSledeceg: 'Četvrtfinale', slot: 'gost' },
+        'PO2': { faza: 'Doigravanje', sledeciMec: 'QF2', fazaSledeceg: 'Četvrtfinale', slot: 'gost' },
+        'PO3': { faza: 'Doigravanje', sledeciMec: 'QF3', fazaSledeceg: 'Četvrtfinale', slot: 'gost' },
+        'PO4': { faza: 'Doigravanje', sledeciMec: 'QF4', fazaSledeceg: 'Četvrtfinale', slot: 'gost' },
+
+        'QF1': { faza: 'Četvrtfinale', sledeciMec: 'SF1', fazaSledeceg: 'Polufinale', slot: 'domacin' },
+        'QF2': { faza: 'Četvrtfinale', sledeciMec: 'SF1', fazaSledeceg: 'Polufinale', slot: 'gost' },
+        'QF3': { faza: 'Četvrtfinale', sledeciMec: 'SF2', fazaSledeceg: 'Polufinale', slot: 'domacin' },
+        'QF4': { faza: 'Četvrtfinale', sledeciMec: 'SF2', fazaSledeceg: 'Polufinale', slot: 'gost' },
+
+        'SF1': { faza: 'Polufinale', sledeciMec: 'FIN', fazaSledeceg: 'FINALE', slot: 'domacin', porazeniMec: '3M', fazaPorazenog: 'Meč za 3. mesto', slotPorazenog: 'domacin' },
+        'SF2': { faza: 'Polufinale', sledeciMec: 'FIN', fazaSledeceg: 'FINALE', slot: 'gost', porazeniMec: '3M', fazaPorazenog: 'Meč za 3. mesto', slotPorazenog: 'gost' }
+    };
+
     const danasnjiDatum = new Date().toISOString().split('T')[0];
     if(document.getElementById('pazar-datum')) document.getElementById('pazar-datum').value = danasnjiDatum;
     if(document.getElementById('prihod-datum')) document.getElementById('prihod-datum').value = danasnjiDatum;
@@ -775,6 +791,7 @@
                 }
             });
 
+            inicijalizujNokautKostur();
             osveziSveEkrane();
         } catch (error) {
             console.error("Greška pri čitanju baze:", error);
@@ -782,6 +799,41 @@
         } finally {
             document.getElementById('loading-overlay').style.display = 'none';
         }
+    }
+
+    // Automatsko ugradjivanje pocetnih parova
+    function inicijalizujNokautKostur() {
+        const pocetnePostavke = [
+            { faza: 'Doigravanje', oznaka: 'PO1', dom: 'AgroPavkov', gos: 'Crnotravac' },
+            { faza: 'Doigravanje', oznaka: 'PO2', dom: 'Metropola', gos: 'KDK Gips' },
+            { faza: 'Doigravanje', oznaka: 'PO3', dom: 'Dacićini Sinovi', gos: '7 i po Igrača' },
+            { faza: 'Doigravanje', oznaka: 'PO4', dom: 'Suvi Plić 3', gos: 'Boca Juniors' },
+            
+            { faza: 'Četvrtfinale', oznaka: 'QF1', dom: 'Carina Brothers', gos: '' },
+            { faza: 'Četvrtfinale', oznaka: 'QF2', dom: 'Farma Varga', gos: '' },
+            { faza: 'Četvrtfinale', oznaka: 'QF3', dom: 'Kiseli Krastavci', gos: '' },
+            { faza: 'Četvrtfinale', oznaka: 'QF4', dom: 'Kod Silvane', gos: '' }
+        ];
+
+        pocetnePostavke.forEach(item => {
+            let mec = utakmice.find(u => u.faza === item.faza && u.nokautOznaka === item.oznaka);
+            if(!mec) {
+                utakmice.push({
+                    id: Date.now() + Math.floor(Math.random()*10000),
+                    domacin: item.dom,
+                    gost: item.gos,
+                    goloviD: 0,
+                    goloviG: 0,
+                    strelciDomacin: [],
+                    strelciGost: [],
+                    faza: item.faza,
+                    nokautOznaka: item.oznaka
+                });
+            } else {
+                if(!mec.domacin && item.dom) mec.domacin = item.dom;
+                if(!mec.gost && item.gos) mec.gost = item.gos;
+            }
+        });
     }
 
     async function sacuvajUCloud() {
@@ -1645,6 +1697,7 @@
         await sacuvajUCloud();
     }
 
+    // AUTOMATSKO PROSLEDJIVANJE POBEDNIKA KROZ MREŽU
     async function sacuvajNokautRezultat(faza, oznaka) {
         let mec = utakmice.find(u => u.faza === faza && u.nokautOznaka === oznaka);
         if(!mec) return;
@@ -1667,8 +1720,56 @@
 
         mec.strelciDomacin = strelciD;
         mec.strelciGost = strelciG;
+
+        const pobednik = gDom > gGos ? mec.domacin : mec.gost;
+        const porazeni = gDom > gGos ? mec.gost : mec.domacin;
+
+        // Logika automatskog prolaza dalje
+        const pravilo = MREZA_TURNIRA[oznaka];
+        if (pravilo) {
+            let sledeciMec = utakmice.find(u => u.nokautOznaka === pravilo.sledeciMec);
+            if (!sledeciMec) {
+                sledeciMec = {
+                    id: Date.now() + Math.floor(Math.random()*1000),
+                    domacin: pravilo.slot === 'domacin' ? pobednik : "",
+                    gost: pravilo.slot === 'gost' ? pobednik : "",
+                    goloviD: 0,
+                    goloviG: 0,
+                    strelciDomacin: [],
+                    strelciGost: [],
+                    faza: pravilo.fazaSledeceg,
+                    nokautOznaka: pravilo.sledeciMec
+                };
+                utakmice.push(sledeciMec);
+            } else {
+                if (pravilo.slot === 'domacin') sledeciMec.domacin = pobednik;
+                else sledeciMec.gost = pobednik;
+            }
+
+            // Ako je polufinale, poraženi se šalje u meč za 3. mesto
+            if (pravilo.porazeniMec) {
+                let mec3M = utakmice.find(u => u.nokautOznaka === pravilo.porazeniMec);
+                if (!mec3M) {
+                    mec3M = {
+                        id: Date.now() + Math.floor(Math.random()*1000),
+                        domacin: pravilo.slotPorazenog === 'domacin' ? porazeni : "",
+                        gost: pravilo.slotPorazenog === 'gost' ? porazeni : "",
+                        goloviD: 0,
+                        goloviG: 0,
+                        strelciDomacin: [],
+                        strelciGost: [],
+                        faza: pravilo.fazaPorazenog,
+                        nokautOznaka: pravilo.porazeniMec
+                    };
+                    utakmice.push(mec3M);
+                } else {
+                    if (pravilo.slotPorazenog === 'domacin') mec3M.domacin = porazeni;
+                    else mec3M.gost = porazeni;
+                }
+            }
+        }
         
-        alert(`Sačuvan rezultat i strelci za ${faza} (${oznaka}): ${mec.domacin} ${gDom}:${gGos} ${mec.gost}`);
+        alert(`Sačuvan rezultat: ${mec.domacin} ${gDom}:${gGos} ${mec.gost}\nPobednik (${pobednik}) je automatski prebačen u sledeću rundu!`);
         osveziSveEkrane();
         await sacuvajUCloud();
     }
@@ -1697,8 +1798,8 @@
         const golD = mec ? mec.goloviD : 0;
         const golG = mec ? mec.goloviG : 0;
 
-        const isWinnerDom = mec && mec.goloviD > mec.goloviG;
-        const isWinnerGos = mec && mec.goloviG > mec.goloviD;
+        const isWinnerDom = mec && (mec.goloviD > 0 || mec.goloviG > 0) && mec.goloviD > mec.goloviG;
+        const isWinnerGos = mec && (mec.goloviD > 0 || mec.goloviG > 0) && mec.goloviG > mec.goloviD;
         
         let cardHtml = `<div class="bracket-card ${isFinale ? 'finale-card' : ''}">`;
         cardHtml += `<div class="bracket-tag"><span>${oznaka}</span><span>${opis}</span></div>`;
