@@ -459,7 +459,7 @@
                                 </div>
                                 <div>
                                     <label for="golovi-domacin">Golovi D:</label>
-                                    <input type="number" id="golovi-domacin" min="0" value="0" oninput="generisiPoljaZaStrelce()" required>
+                                    <input type="number" id="golovi-domacin" min="0" value="0" oninput="generisiPoljaZaStrelce()" onchange="generisiPoljaZaStrelce()" required>
                                 </div>
                             </div>
                             <div class="form-row-inline" style="margin-top: 10px;">
@@ -469,7 +469,7 @@
                                 </div>
                                 <div>
                                     <label for="golovi-gost">Golovi G:</label>
-                                    <input type="number" id="golovi-gost" min="0" value="0" oninput="generisiPoljaZaStrelce()" required>
+                                    <input type="number" id="golovi-gost" min="0" value="0" oninput="generisiPoljaZaStrelce()" onchange="generisiPoljaZaStrelce()" required>
                                 </div>
                             </div>
                         </div>
@@ -532,11 +532,11 @@
                                 <div class="form-row-inline">
                                     <div>
                                         <label id="lbl-nk-domacin">Golovi Domaćin:</label>
-                                        <input type="number" id="nokaut-golovi-d" min="0" value="0" oninput="generisiStrelceNokaut()" required>
+                                        <input type="number" id="nokaut-golovi-d" min="0" value="0" oninput="generisiStrelceNokaut()" onchange="generisiStrelceNokaut()" required>
                                     </div>
                                     <div>
                                         <label id="lbl-nk-gost">Golovi Gost:</label>
-                                        <input type="number" id="nokaut-golovi-g" min="0" value="0" oninput="generisiStrelceNokaut()" required>
+                                        <input type="number" id="nokaut-golovi-g" min="0" value="0" oninput="generisiStrelceNokaut()" onchange="generisiStrelceNokaut()" required>
                                     </div>
                                 </div>
                             </div>
@@ -774,6 +774,22 @@
     
     let poredakPoGrupama = { A: [], B: [] };
 
+    // Pomoćna funkcija za bezbedno pronalaženje igrača bez obzira na mala/velika slova ili razmake
+    function nadjiIgraceZaEkipu(nazivEkipe) {
+        if (!nazivEkipe) return [];
+        const cistNaziv = nazivEkipe.trim().toLowerCase();
+        
+        for (let kljuc in igraciPoEkipama) {
+            if (kljuc.trim().toLowerCase() === cistNaziv) {
+                const lista = igraciPoEkipama[kljuc];
+                if (Array.isArray(lista)) {
+                    return lista.map(ig => (typeof ig === 'object' && ig !== null) ? (ig.ime || ig.naziv || JSON.stringify(ig)) : ig);
+                }
+            }
+        }
+        return [];
+    }
+
     // Struktura Parova Nokaut Faze
     const nokautParoviSabloni = {
         PO1: { domacin: "AGROPAVKOV", gost: "CRNOTRAVAC", naziv: "Baraž PO1" },
@@ -935,7 +951,7 @@
         let ou = 0, p = 0, n = 0, i = 0, dg = 0, pg = 0;
         let htmlMecevi = "";
         const goloviBrojac = {};
-        const roster = igraciPoEkipama[naziv] || [];
+        const roster = nadjiIgraceZaEkipu(naziv);
         roster.forEach(ig => goloviBrojac[ig] = 0);
         
         utakmice.forEach(u => {
@@ -1044,8 +1060,8 @@
         }
         
         kontejner.style.display = 'block';
-        const igraciDomaci = igraciPoEkipama[domacin] || [];
-        const igraciGost = igraciPoEkipama[gost] || [];
+        const igraciDomaci = nadjiIgraceZaEkipu(domacin);
+        const igraciGost = nadjiIgraceZaEkipu(gost);
         
         let opcijeDomaci = `<option value="">-- Ostavi prazno / Nepoznat strelac --</option>`;
         if(igraciDomaci.length === 0) opcijeDomaci = `<option value="">⚠️ Nema igrača u rosteru!</option>`;
@@ -1193,14 +1209,16 @@
 
         kontejner.style.display = 'block';
 
-        const igrD = igraciPoEkipama[par.domacin] || [];
-        const igrG = igraciPoEkipama[par.gost] || [];
+        const igrD = nadjiIgraceZaEkipu(par.domacin);
+        const igrG = nadjiIgraceZaEkipu(par.gost);
 
         let optD = `<option value="">-- Nepoznat / Prazno --</option>`;
-        igrD.forEach(ig => optD += `<option value="${ig}">${ig}</option>`);
+        if(igrD.length === 0) optD = `<option value="">⚠️ Nema igrača u rosteru!</option>`;
+        else igrD.forEach(ig => optD += `<option value="${ig}">${ig}</option>`);
 
         let optG = `<option value="">-- Nepoznat / Prazno --</option>`;
-        igrG.forEach(ig => optG += `<option value="${ig}">${ig}</option>`);
+        if(igrG.length === 0) optG = `<option value="">⚠️ Nema igrača u rosteru!</option>`;
+        else igrG.forEach(ig => optG += `<option value="${ig}">${ig}</option>`);
 
         if(golD > 0) {
             dDiv.innerHTML = `<p style="font-weight:bold; font-size:13px; color:var(--primary-blue);">${par.domacin}:</p>`;
@@ -1519,7 +1537,7 @@
         const ekipaMapeIgraca = {};
         
         Object.keys(igraciPoEkipama).forEach(ekIme => {
-            const listaIgr = igraciPoEkipama[ekIme] || [];
+            const listaIgr = nadjiIgraceZaEkipu(ekIme);
             listaIgr.forEach(ig => {
                 goloviMape[ig] = 0;
                 ekipaMapeIgraca[ig] = ekIme;
@@ -1573,7 +1591,7 @@
         if(!tbody) return;
         tbody.innerHTML = '';
         
-        const lista = igraciPoEkipama[trenutnoOtvorenaEkipa] || [];
+        const lista = nadjiIgraceZaEkipu(trenutnoOtvorenaEkipa);
         if(lista.length === 0) {
             tbody.innerHTML = `<tr><td colspan="4" style="text-align:center; color:#888;">Nema registrovanih igrača u rosteru.</td></tr>`;
             return;
